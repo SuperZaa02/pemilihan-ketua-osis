@@ -1,6 +1,11 @@
 {
   "name": "pemilihan-ketua-osis",
-  "version": "0.1.0",
+  "author": {
+    "name": "Faeza Raziq",
+    "email": "faezaraziqg@gmail.com"
+  },
+  "version": "0.0.1",
+  "description": "Website Pemilihan Ketua OSIS SMAN 10 Kota Bekasi",
   "private": true,
   "scripts": {
     "dev": "next dev",
