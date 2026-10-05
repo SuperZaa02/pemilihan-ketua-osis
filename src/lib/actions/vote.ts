@@ -83,9 +83,23 @@ export async function loadVotersByPlacementAction(
   }
 
   const voterList = await getVotersForPlacement(placement.id);
+  if (voterList.length === 0) {
+    return {
+      error: "Belum ada pemilih terdaftar di kelas ini.",
+      placementId: null,
+      voters: [],
+    };
+  }
+  if (voterList.every((voter) => voter.hasVoted)) {
+    return {
+      error: "Semua pemilih di kelas ini sudah menggunakan hak pilih.",
+      placementId: null,
+      voters: [],
+    };
+  }
 
   return {
-    error: voterList.length === 0 ? "Belum ada pemilih terdaftar di kelas ini." : null,
+    error: null,
     placementId: placement.id,
     voters: voterList,
   };

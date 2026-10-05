@@ -68,6 +68,16 @@ export default async function VoteCandidatesPage({
   }
 
   const candidates = await getCachedActiveCandidates();
+  const gridColumns =
+    candidates.length <= 1
+      ? "sm:grid-cols-1 sm:max-w-md sm:mx-auto"
+      : candidates.length <= 4
+        ? "sm:grid-cols-2 lg:grid-cols-2 lg:max-w-4xl lg:mx-auto"
+        : candidates.length <= 6
+          ? "lg:grid-cols-3"
+          : candidates.length <= 8 || candidates.length > 9
+            ? "lg:grid-cols-4"
+            : "lg:grid-cols-3";
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
@@ -77,8 +87,10 @@ export default async function VoteCandidatesPage({
         </h1>
         <p className="mt-1 text-sm text-zinc-600">
           Halo, <span className="font-medium text-zinc-800">{voter.fullName}</span>{" "}
-          — pilih salah satu kandidat di bawah. Keputusan Anda bersifat rahasia
-          dan tidak dapat diubah setelah dikirim.
+          — pilih salah satu kandidat di bawah.
+        </p>
+        <p className="mt-3 inline-flex rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
+          Jumlah kandidat: {candidates.length}
         </p>
       </header>
 
@@ -95,14 +107,14 @@ export default async function VoteCandidatesPage({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`grid grid-cols-1 gap-4 ${gridColumns}`}>
           {candidates.map((candidate) => (
             <Link
               key={candidate.id}
               href={`/vote/candidates/${candidate.id}`}
-              className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-colors hover:border-zinc-400"
+              className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-zinc-400 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
             >
-              <div className="relative aspect-[4/5] bg-zinc-100">
+              <div className="relative aspect-[4/3] bg-zinc-100">
                 {candidate.photoUrl ? (
                   <Image
                     src={candidate.photoUrl}
@@ -118,17 +130,11 @@ export default async function VoteCandidatesPage({
                   </div>
                 )}
               </div>
-              <div className="flex flex-1 flex-col gap-1 p-4">
+              <div className="flex flex-col gap-1 p-5">
                 <h2 className="font-medium text-zinc-900 group-hover:underline">
                   {candidate.fullName}
                 </h2>
-                <p className="text-sm text-zinc-600">
-                  {candidate.placementName}
-                </p>
-                <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-zinc-700">
-                  <span className="font-medium">Program kerja: </span>
-                  {candidate.programKerja}
-                </p>
+                <p className="text-sm text-zinc-600">{candidate.placementName}</p>
               </div>
             </Link>
           ))}

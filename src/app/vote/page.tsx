@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { VoterLoginForm } from "@/components/vote/voter-login-form";
 import { getVoterSession } from "@/lib/auth/voter-session";
 import { getCachedActiveElection } from "@/lib/queries/cached";
-import { getAllPlacements } from "@/lib/queries/placements";
+import { getPlacementsWithVotingStatus } from "@/lib/queries/placements";
 
 export const metadata: Metadata = {
   title: "Vote | Pemilihan Ketua OSIS",
@@ -39,7 +39,7 @@ export default async function VotePage({
 
   const [election, placements] = await Promise.all([
     getCachedActiveElection(),
-    getAllPlacements(),
+    getPlacementsWithVotingStatus(),
   ]);
 
   if (!election || election.status !== "open") {

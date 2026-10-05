@@ -8,8 +8,6 @@ import {
   loginVoterAction,
   type VoterListState,
 } from "@/lib/actions/vote";
-import type { Placement } from "@/db/schema";
-
 const initialState: VoterListState = { error: null, placementId: null, voters: [] };
 
 const inputClass =
@@ -22,7 +20,13 @@ export function VoterLoginForm({
 }: {
   electionName: string;
   allowedPlacements: string[];
-  placements: Placement[];
+  placements: {
+    id: string;
+    name: string;
+    type: "student" | "teacher";
+    voterCount: number;
+    votedCount: number;
+  }[];
 }) {
   const [state, formAction, isPending] = useActionState(
     loadVotersByPlacementAction,
@@ -65,8 +69,17 @@ export function VoterLoginForm({
           >
             <option value="" disabled>Pilih kelas...</option>
             {availablePlacements.map((placement) => (
-              <option key={placement.id} value={placement.id}>
+              <option
+                key={placement.id}
+                value={placement.id}
+                disabled={placement.voterCount === 0 || placement.votedCount === placement.voterCount}
+              >
                 {placement.name}
+                {placement.voterCount === 0
+                  ? " (belum ada pemilih)"
+                  : placement.votedCount === placement.voterCount
+                    ? " (semua sudah memilih)"
+                    : ""}
               </option>
             ))}
           </select>

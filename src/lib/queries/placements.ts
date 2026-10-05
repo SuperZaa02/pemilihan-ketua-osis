@@ -1,7 +1,7 @@
-import { count, eq, sql } from "drizzle-orm";
+import { count, countDistinct, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { placements, voters } from "@/db/schema";
+import { placements, voters, votes } from "@/db/schema";
 
 export type PlacementWithUsage = {
   id: string;
@@ -40,6 +40,22 @@ export async function getAllPlacements() {
   return db
     .select()
     .from(placements)
+    .orderBy(naturalPlacementOrder());
+}
+
+export async function getPlacementsWithVotingStatus() {
+  return db
+    .select({
+      id: placements.id,
+      name: placements.name,
+      type: placements.type,
+      voterCount: countDistinct(voters.id),
+      votedCount: count(votes.id),
+    })
+    .from(placements)
+    .leftJoin(voters, eq(voters.placementId, placements.id))
+    .leftJoin(votes, eq(votes.voterId, voters.id))
+    .groupBy(placements.id, placements.name, placements.type)
     .orderBy(naturalPlacementOrder());
 }
 

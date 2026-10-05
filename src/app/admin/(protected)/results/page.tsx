@@ -40,15 +40,11 @@ export default async function AdminResultsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {[
           { label: "Total Pemilih", value: results.totalVoters },
-          { label: "Suara Masuk", value: results.totalVotes },
           { label: "Partisipasi", value: `${results.turnoutPercent}%` },
-          {
-            label: "Suara Guru",
-            value: results.teacherVotes,
-          },
+          { label: "Suara Masuk", value: results.totalVotes },
         ].map((stat) => (
           <Card key={stat.label} className="p-4">
             <p className="text-xs uppercase tracking-wide text-zinc-400">
