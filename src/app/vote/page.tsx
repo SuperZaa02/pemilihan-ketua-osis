@@ -46,9 +46,6 @@ export default async function VotePage({
     return (
       <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16">
         <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-zinc-100">
-            <Vote aria-hidden className="size-6 text-zinc-500" />
-          </div>
           <h1 className="text-lg font-semibold text-zinc-900">
             Pemungutan suara belum dibuka
           </h1>
@@ -70,9 +67,6 @@ export default async function VotePage({
     <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-zinc-900">
-            <Vote aria-hidden className="size-6 text-white" />
-          </div>
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
             {election.name}
           </h1>

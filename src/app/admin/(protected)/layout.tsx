@@ -28,7 +28,7 @@ export default async function AdminLayout({
             href="/admin/dashboard"
             className="text-sm font-semibold tracking-tight text-zinc-900"
           >
-            Pilketos OSIS
+            PILKETOS OSIS
           </Link>
 
           <nav className="flex items-center gap-1">

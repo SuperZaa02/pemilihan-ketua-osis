@@ -89,9 +89,6 @@ export default async function VoteCandidatesPage({
           Halo, <span className="font-medium text-zinc-800">{voter.fullName}</span>{" "}
           — pilih salah satu kandidat di bawah.
         </p>
-        <p className="mt-3 inline-flex rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
-          Jumlah kandidat: {candidates.length}
-        </p>
       </header>
 
       {error === "candidate" && (
