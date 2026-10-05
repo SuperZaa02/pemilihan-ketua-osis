@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Foto kandidat disimpan lokal di public/uploads.
+  images: {
+    remotePatterns: [],
+  },
 };
 
 export default nextConfig;

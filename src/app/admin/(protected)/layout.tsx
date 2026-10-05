@@ -1,4 +1,4 @@
-import { ChartColumn, Settings, Users, Vote } from "lucide-react";
+import { ChartColumn, ChartPie, Settings, Users, Vote } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/admin/candidates", label: "Kandidat", icon: Vote },
   { href: "/admin/voters", label: "Pemilih", icon: Users },
   { href: "/admin/election", label: "Pengaturan", icon: Settings },
+  { href: "/admin/results", label: "Hasil", icon: ChartPie },
 ] as const;
 
 export default async function AdminLayout({

@@ -1,6 +1,5 @@
 import {
   index,
-  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -8,14 +7,11 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-// Tipe pemilih: siswa atau guru.
-// - student  -> placement berisi kelas (contoh: "XI RPL 1")
-// - teacher  -> placement selalu "guru"
-export const voterTypeEnum = pgEnum("voter_type", ["student", "teacher"]);
+import { voterTypeEnum } from "./enums";
 
-// Mencegah double voting: hasVoted di-update saat vote disubmit.
-// (Vote per pemilih akan di-enforce UNIQUE(voter_id) di tabel votes
-// ketika fitur voting diimplementasikan.)
+// Tipe pemilih: siswa atau guru.
+// - student -> placement berisi kelas (contoh: "XI RPL 1")
+// - teacher -> placement selalu "GURU"
 export const voters = pgTable(
   "voters",
   {
@@ -23,7 +19,11 @@ export const voters = pgTable(
     fullName: text("full_name").notNull(),
     type: voterTypeEnum("type").notNull(),
     placement: text("placement").notNull(),
-    hasVoted: text("has_voted"),
+    // Audit: ditandai saat pemilih ini menempuh alur identitas di /vote.
+    // Kebenaran final satu-pemilih-satu-suara tetap di tabel votes.
+    identityConfirmedAt: timestamp("identity_confirmed_at", {
+      withTimezone: true,
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -42,4 +42,3 @@ export const voters = pgTable(
     index("voters_placement_idx").on(table.placement),
   ],
 );
-

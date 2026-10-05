@@ -1,6 +1,12 @@
-import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
-export const adminRoleEnum = pgEnum("admin_role", ["super_admin", "admin"]);
+import { adminRoleEnum } from "./enums";
 
 export const admins = pgTable(
   "admins",
@@ -22,4 +28,3 @@ export const admins = pgTable(
   },
   (table) => [index("admins_email_idx").on(table.email)],
 );
-
