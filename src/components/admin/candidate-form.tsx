@@ -94,15 +94,18 @@ export function CandidateForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="bio" className="text-sm font-medium text-zinc-900">
-          Identitas / Bio <span className="text-zinc-500">(opsional)</span>
+        <label htmlFor="programKerja" className="text-sm font-medium text-zinc-900">
+          Program Kerja
         </label>
         <textarea
-          id="bio"
-          name="bio"
-          rows={2}
-          defaultValue={candidate?.bio ?? ""}
-          placeholder="cth: Putra kedua dari pasangan Bpk. ... & Ibu ..., anak aktif ..."
+          id="programKerja"
+          name="programKerja"
+          required
+          minLength={5}
+          maxLength={2000}
+          rows={4}
+          defaultValue={candidate?.programKerja ?? ""}
+          placeholder="Tuliskan program kerja kandidat"
           className={inputClass}
         />
       </div>

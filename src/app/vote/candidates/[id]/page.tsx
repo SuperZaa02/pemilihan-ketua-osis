@@ -87,14 +87,14 @@ export default async function VoteConfirmPage({
         </div>
 
         <div className="flex flex-col gap-4 p-5">
-          {candidate.bio && (
-            <div>
-              <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Identitas
-              </h2>
-              <p className="mt-1 text-sm text-zinc-800">{candidate.bio}</p>
-            </div>
-          )}
+          <div>
+            <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              Program Kerja
+            </h2>
+            <p className="mt-1 whitespace-pre-line text-sm text-zinc-800">
+              {candidate.programKerja}
+            </p>
+          </div>
 
           <div>
             <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">

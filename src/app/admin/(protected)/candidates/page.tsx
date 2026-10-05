@@ -102,11 +102,14 @@ export default async function AdminCandidatesPage({
                 </div>
               </div>
 
-              {candidate.bio && (
-                <p className="line-clamp-2 text-sm text-zinc-700">
-                  {candidate.bio}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Program Kerja
                 </p>
-              )}
+                <p className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-zinc-700">
+                  {candidate.programKerja}
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <div>

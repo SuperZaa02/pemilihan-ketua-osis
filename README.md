@@ -6,7 +6,7 @@ Sistem pemilihan Ketua OSIS: Next.js (App Router) + TypeScript + PostgreSQL + Dr
 
 - **Autentikasi admin** — login/logout, session cookie signed HMAC (httpOnly), proteksi route 2 lapis (proxy + layout guard), **ganti password** dari halaman Pengaturan.
 - **Manajemen kelas/penempatan (placement)** — tabel `placements` tersendiri: buat kelas (`X.1`, `XI.3`, `XII.5`, ...), import massal, hapus. Strict & unique — tidak ada kelas duplikat/typo. Kandidat & pemilih **wajib** memilih dari daftar ini.
-- **Manajemen kandidat** — tambah, **edit**, hapus, upload foto (JPG/PNG/WebP/GIF, max 25 MB) ke S3-compatible object storage, aktif/nonaktif.
+- **Manajemen kandidat** — tambah, **edit**, hapus, upload foto (JPG/PNG/WebP/GIF, max 25 MB) ke S3-compatible object storage, program kerja wajib, aktif/nonaktif.
 - **Manajemen pemilih** — tambah satuan, import massal (`Nama | KELAS` / `Nama` saja untuk guru), pencarian, hapus, **reset pilihan** pemilih tertentu.
 - **Pengaturan pemilihan** — nama, periode (mulai/selesai), **dropdown checklist kelas yang boleh memilih** (bisa ditambah/dihapus kapan saja), status draft/open/closed, **hapus semua data pemilihan** (kandidat + pemilih + suara).
 - **Alur voting publik** (`/vote`) — pilih kelas dan nama pemilih dari daftar → daftar kandidat → detail + visi misi → konfirmasi pilihan → suara tercatat.

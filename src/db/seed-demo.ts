@@ -45,7 +45,8 @@ async function main() {
       {
         fullName: "Raka Pratama",
         placementId: placementId("XI.1"),
-        bio: "Putra dari pasangan Bpk. Hendra & Ibu Wati. Aktif di ekstrakurikuler basket dan OSIS.",
+        programKerja:
+          "1. Mengaktifkan kembali ekstrakurikuler yang tidur.\n2. Festival seni tahunan.\n3. Kotak aspirasi digital.\n4. Program literasi sekolah.",
         vision:
           "Mewujudkan OSIS yang aktif, kreatif, dan menjadi jembatan antara siswa dan sekolah.",
         mission:
@@ -55,7 +56,8 @@ async function main() {
       {
         fullName: "Salsabila Putri",
         placementId: placementId("XI.3"),
-        bio: "Putri dari pasangan Bpk. Ahmad & Ibu Rina. Ketua kelas 2 periode, aktif debat.",
+        programKerja:
+          "1. Lomba antar-kelas bulanan.\n2. Program tutor sebaya.\n3. Perbaikan kantin sehat.",
         vision:
           "OSIS yang inklusif dan disiplin, dengan prestasi non-akademik yang meningkat.",
         mission:
@@ -65,7 +67,8 @@ async function main() {
       {
         fullName: "Dimas Anggara",
         placementId: placementId("XII.2"),
-        bio: "Putra dari pasangan Bpk. Surya & Ibu Melati. Atlet renang provinsi.",
+        programKerja:
+          "1. Turnamen olahraga antar-kelas.\n2. Kelas musik sore.\n3. Jumat bersih.",
         vision: "Membangun budaya sportivitas dan kebersamaan di sekolah.",
         mission:
           "1. Turnamen olahraga antar-kelas.\n2. Kelas musik sore.\n3. Jumat bersih.",

@@ -8,6 +8,13 @@
       "when": 1791210721441,
       "tag": "0000_lovely_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791214863203,
+      "tag": "0001_required_candidate_program_kerja",
+      "breakpoints": true
     }
   ]
 }

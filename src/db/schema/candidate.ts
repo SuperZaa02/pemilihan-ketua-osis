@@ -19,7 +19,7 @@ export const candidates = pgTable(
       .notNull()
       .references(() => placements.id, { onDelete: "restrict" }),
     photoUrl: text("photo_url"),
-    bio: text("bio"),
+    programKerja: text("program_kerja").notNull(),
     vision: text("vision").notNull(),
     mission: text("mission").notNull(),
     status: candidateStatusEnum("status").notNull().default("active"),

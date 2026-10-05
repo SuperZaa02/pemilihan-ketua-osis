@@ -12,7 +12,7 @@ const candidateWithPlacementColumns = {
   fullName: candidates.fullName,
   placementId: candidates.placementId,
   photoUrl: candidates.photoUrl,
-  bio: candidates.bio,
+  programKerja: candidates.programKerja,
   vision: candidates.vision,
   mission: candidates.mission,
   status: candidates.status,

@@ -20,7 +20,11 @@ const candidateSchema = z.object({
   placementId: z
     .string()
     .regex(/^[0-9a-f-]{36}$/i, "Pilih kelas dari daftar."),
-  bio: z.string().trim().max(500, "Identitas maksimal 500 karakter"),
+  programKerja: z
+    .string()
+    .trim()
+    .min(5, "Program kerja minimal 5 karakter.")
+    .max(2000, "Program kerja maksimal 2000 karakter."),
   vision: z.string().trim().min(5, "Visi minimal 5 karakter").max(1000),
   mission: z.string().trim().min(5, "Misi minimal 5 karakter").max(2000),
   status: z.enum(["active", "inactive"]),
@@ -148,7 +152,7 @@ export async function createCandidateAction(
   const parsed = candidateSchema.safeParse({
     fullName: formData.get("fullName"),
     placementId: formData.get("placementId"),
-    bio: formData.get("bio") ?? "",
+    programKerja: formData.get("programKerja"),
     vision: formData.get("vision"),
     mission: formData.get("mission"),
     status: formData.get("status") ?? "active",
@@ -184,7 +188,7 @@ export async function updateCandidateAction(
   const parsed = candidateSchema.safeParse({
     fullName: formData.get("fullName"),
     placementId: formData.get("placementId"),
-    bio: formData.get("bio") ?? "",
+    programKerja: formData.get("programKerja"),
     vision: formData.get("vision"),
     mission: formData.get("mission"),
     status: formData.get("status") ?? "active",

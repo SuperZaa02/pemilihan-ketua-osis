@@ -125,6 +125,10 @@ export default async function VoteCandidatesPage({
                 <p className="text-sm text-zinc-600">
                   {candidate.placementName}
                 </p>
+                <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-zinc-700">
+                  <span className="font-medium">Program kerja: </span>
+                  {candidate.programKerja}
+                </p>
               </div>
             </Link>
           ))}
