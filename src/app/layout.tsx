@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: {
     default: "Pemilihan Ketua OSIS",
-    template: "%s | Pemilihan Ketua OSIS",
+    template: "%s | Pemilihan Ketua OSIS SMAN 10 Kota Bekasi",
   },
   description: "Sistem pemilihan Ketua OSIS SMAN 10 Kota Bekasi",
 };
