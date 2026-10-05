@@ -50,7 +50,7 @@ export async function getPlacementsWithVotingStatus() {
       name: placements.name,
       type: placements.type,
       voterCount: countDistinct(voters.id),
-      votedCount: count(votes.id),
+      votedCount: countDistinct(votes.voterId),
     })
     .from(placements)
     .leftJoin(voters, eq(voters.placementId, placements.id))

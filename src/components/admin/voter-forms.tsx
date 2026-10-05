@@ -29,6 +29,9 @@ export function VoterForm({ placements }: { placements: PlacementOption[] }) {
   );
   const [type, setType] = useState<"student" | "teacher">("student");
 
+  // Filter placements khusus siswa
+  const studentPlacements = placements.filter((p) => p.type === "student");
+
   return (
     <form action={formAction} className="flex flex-col gap-3">
       {state.error && (
@@ -81,11 +84,12 @@ export function VoterForm({ placements }: { placements: PlacementOption[] }) {
           </select>
         </div>
 
-        {type === "student" && (
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="v-placement" className="text-sm font-medium text-zinc-900">
-              Kelas
-            </label>
+        {/* Kolom Kelas selalu ada di grid agar tata letak tidak bergeser */}
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="v-placement" className="text-sm font-medium text-zinc-900">
+            Kelas
+          </label>
+          {type === "student" ? (
             <select
               id="v-placement"
               name="placementId"
@@ -93,18 +97,26 @@ export function VoterForm({ placements }: { placements: PlacementOption[] }) {
               className={inputClass}
             >
               <option value="" disabled>
-                {placements.length === 0
+                {studentPlacements.length === 0
                   ? "Belum ada kelas — buat dulu di Pengaturan"
                   : "Pilih kelas..."}
               </option>
-              {placements.map((placement) => (
+              {studentPlacements.map((placement) => (
                 <option key={placement.id} value={placement.id}>
                   {placement.name}
                 </option>
               ))}
             </select>
-          </div>
-        )}
+          ) : (
+            // Tampilan tiruan/disabled saat tipe Guru dipilih agar kolom kanan tetap terisi rapi
+            <input
+              type="text"
+              disabled
+              value="Tidak diperlukan (Guru)"
+              className={`${inputClass} bg-zinc-50 text-zinc-500 cursor-not-allowed`}
+            />
+          )}
+        </div>
       </div>
 
       <button

@@ -16,7 +16,7 @@ import { getAllPlacements } from "@/lib/queries/placements";
 import { getVotersWithVoteStatus } from "@/lib/queries/voters";
 
 export const metadata = {
-  title: "Pemilih | Pemilihan Ketua OSIS",
+  title: "Atur Para Pemilih",
 };
 
 export default async function AdminVotersPage({
@@ -49,7 +49,7 @@ export default async function AdminVotersPage({
         description={`${totalVoters} pemilih terdaftar · ${votedCount} sudah memilih`}
       />
 
-      <Card>
+      <Card className="p-6">
         <VoterForm placements={placementOptions} />
       </Card>
 

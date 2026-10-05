@@ -8,7 +8,7 @@ import { getActiveElection } from "@/lib/queries/election";
 import { getElectionResults } from "@/lib/queries/results";
 
 export const metadata = {
-  title: "Dashboard | Pemilihan Ketua OSIS",
+  title: "Beranda",
 };
 
 export const dynamic = "force-dynamic";

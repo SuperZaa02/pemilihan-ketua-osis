@@ -1,4 +1,5 @@
 import { ChartColumn, ChartPie, Settings, Users, Vote } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -26,9 +27,16 @@ export default async function AdminLayout({
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
           <Link
             href="/admin/dashboard"
-            className="text-sm font-semibold tracking-tight text-zinc-900"
+            className="flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-900"
           >
-            PILKETOS OSIS
+            <Image
+              src="/osis-sman10bekasi.png"
+              alt=""
+              width={32}
+              height={32}
+              className="size-8 shrink-0 object-contain"
+            />
+            PILKETOS
           </Link>
 
           <nav className="flex items-center gap-1">

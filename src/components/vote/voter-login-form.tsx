@@ -14,11 +14,9 @@ const inputClass =
   "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none transition-colors focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10";
 
 export function VoterLoginForm({
-  electionName,
   allowedPlacements,
   placements,
 }: {
-  electionName: string;
   allowedPlacements: string[];
   placements: {
     id: string;
@@ -39,7 +37,7 @@ export function VoterLoginForm({
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2">
       {state.error && (
         <p
           className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
@@ -72,12 +70,15 @@ export function VoterLoginForm({
               <option
                 key={placement.id}
                 value={placement.id}
-                disabled={placement.voterCount === 0 || placement.votedCount === placement.voterCount}
+                disabled={
+                  placement.voterCount === 0 ||
+                  placement.votedCount >= placement.voterCount
+                }
               >
                 {placement.name}
                 {placement.voterCount === 0
                   ? " (belum ada pemilih)"
-                  : placement.votedCount === placement.voterCount
+                  : placement.votedCount >= placement.voterCount
                     ? " (semua sudah memilih)"
                     : ""}
               </option>
@@ -126,10 +127,6 @@ export function VoterLoginForm({
           </button>
         </form>
       )}
-
-      <p className="text-center text-xs text-zinc-600">
-        {electionName}
-      </p>
     </div>
   );
 }

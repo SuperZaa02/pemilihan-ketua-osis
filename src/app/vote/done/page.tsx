@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Terima Kasih | Pemilihan Ketua OSIS",
+  title: "Terima Kasih",
 };
 
 export default function VoteDonePage() {

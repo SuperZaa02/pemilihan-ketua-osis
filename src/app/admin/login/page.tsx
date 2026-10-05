@@ -6,7 +6,7 @@ import { LoginForm } from "@/components/admin/login-form";
 import { getSession } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: "Login Admin | Pemilihan Ketua OSIS",
+  title: "Login Admin",
 };
 
 export default async function AdminLoginPage() {

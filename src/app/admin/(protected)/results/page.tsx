@@ -8,7 +8,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { getElectionResults } from "@/lib/queries/results";
 
 export const metadata = {
-  title: "Hasil | Pemilihan Ketua OSIS",
+  title: "Hasil Pemilihan",
 };
 
 export const dynamic = "force-dynamic";
@@ -43,7 +43,7 @@ export default async function AdminResultsPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {[
           { label: "Total Pemilih", value: results.totalVoters },
-          { label: "Partisipasi", value: `${results.turnoutPercent}%` },
+          { label: "Partisipasi", value: `${results.turnoutPercent}% (${results.totalVotes} dari ${results.totalVoters} Orang)` },
           { label: "Suara Masuk", value: results.totalVotes },
         ].map((stat) => (
           <Card key={stat.label} className="p-4">
@@ -61,6 +61,13 @@ export default async function AdminResultsPage() {
         <EmptyState message="Belum ada suara masuk." />
       ) : (
         <Card className="flex flex-col divide-y divide-zinc-100">
+          {leader && leader.voteCount > 0 && (
+            <p className="px-4 py-3 text-center text-sm leading-relaxed text-zinc-500">
+              Sementara ini dipimpin oleh{" "}
+              <span className="font-medium text-zinc-900">{leader.fullName}</span>{" "}
+              dengan {leader.voteCount} suara.
+            </p>
+          )}
           {sorted.map((candidate, index) => (
             <div key={candidate.id} className="flex items-center gap-4 p-4">
               <span
@@ -120,14 +127,6 @@ export default async function AdminResultsPage() {
             </div>
           ))}
         </Card>
-      )}
-
-      {leader && leader.voteCount > 0 && (
-        <p className="text-center text-sm text-zinc-500">
-          Sementara ini dipimpin oleh{" "}
-          <span className="font-medium text-zinc-900">{leader.fullName}</span>{" "}
-          dengan {leader.voteCount} suara.
-        </p>
       )}
     </section>
   );

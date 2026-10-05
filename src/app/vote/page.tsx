@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Vote } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { VoterLoginForm } from "@/components/vote/voter-login-form";
@@ -8,7 +7,7 @@ import { getCachedActiveElection } from "@/lib/queries/cached";
 import { getPlacementsWithVotingStatus } from "@/lib/queries/placements";
 
 export const metadata: Metadata = {
-  title: "Vote | Pemilihan Ketua OSIS",
+  title: "Voting",
 };
 
 /**
@@ -85,7 +84,6 @@ export default async function VotePage({
             </p>
           )}
           <VoterLoginForm
-            electionName={election.name}
             allowedPlacements={election.allowedPlacements}
             placements={placements}
           />

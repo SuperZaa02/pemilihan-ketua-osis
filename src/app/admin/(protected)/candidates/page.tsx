@@ -16,7 +16,7 @@ import { getAllCandidates, getCandidateById } from "@/lib/queries/candidates";
 import { getAllPlacements } from "@/lib/queries/placements";
 
 export const metadata = {
-  title: "Kandidat | Pemilihan Ketua OSIS",
+  title: "Atur Para Kandidat",
 };
 
 export default async function AdminCandidatesPage({

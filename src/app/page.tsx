@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Pemilihan Ketua OSIS",
+  title: "Mengalihkan...",
   description:
     "Sistem pemilihan Ketua OSIS SMAN 10 Kota Bekasi — sederhana, cepat, dan aman.",
 };

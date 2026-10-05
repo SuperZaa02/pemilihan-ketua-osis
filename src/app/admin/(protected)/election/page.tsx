@@ -14,7 +14,7 @@ import { getActiveElection } from "@/lib/queries/election";
 import { getPlacementsWithUsage } from "@/lib/queries/placements";
 
 export const metadata = {
-  title: "Pengaturan | Pemilihan Ketua OSIS",
+  title: "Pengaturan Pemilihan",
 };
 
 export default async function AdminElectionPage() {
