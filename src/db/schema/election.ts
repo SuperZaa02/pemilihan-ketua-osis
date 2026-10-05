@@ -1,5 +1,4 @@
 import {
-  boolean,
   index,
   jsonb,
   pgTable,
@@ -12,6 +11,8 @@ import { electionStatusEnum } from "./enums";
 
 // Konfigurasi pemilihan: periode, target pemilih, dan status open/closed.
 // Sistem menentukan eligibility pemilih dari data ini saat voting.
+// allowedPlacements = nama placement (kelas) yang boleh memilih, diatur
+// lewat dropdown di halaman Pengaturan. Kosong = tidak ada yang boleh.
 export const elections = pgTable(
   "elections",
   {
@@ -20,13 +21,10 @@ export const elections = pgTable(
     status: electionStatusEnum("status").notNull().default("draft"),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
-    // Kelas (tingkat) yang diperbolehkan memilih, mis. ["X", "XI"].
-    allowedClasses: jsonb("allowed_classes")
+    allowedPlacements: jsonb("allowed_placements")
       .$type<string[]>()
       .notNull()
       .default([]),
-    // Apakah guru diperbolehkan memilih.
-    allowTeachers: boolean("allow_teachers").notNull().default(false),
     createdBy: uuid("created_by"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

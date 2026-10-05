@@ -1,14 +1,30 @@
 import "dotenv/config";
-
-import { eq, or } from "drizzle-orm";
+import * as readline from "node:readline/promises";
+import { stdin } from "node:process";
+import { eq } from "drizzle-orm";
 
 import { db, client } from "../src/db";
 import { admins } from "../src/db/schema";
 import { verifyPassword } from "../src/lib/auth/password";
 
+/**
+ * Verifikasi logika login: meminta username & password lewat input
+ * (bukan env), lalu menguji verifyPassword terhadap hash di database.
+ *
+ * Mode piped (testing): printf "username\npassword\n" | pnpm exec tsx scripts/check-auth.ts
+ */
 async function main() {
-  const identifier = (process.env.ADMIN_USERNAME ?? "admin").toLowerCase();
-  const password = process.env.ADMIN_PASSWORD ?? "";
+  const rl = readline.createInterface({ input: stdin, terminal: false });
+  const it = rl[Symbol.asyncIterator]();
+
+  const ask = async () => {
+    const r = await it.next();
+    return r.done ? "" : r.value.trim();
+  };
+
+  const identifier = (await ask()).toLowerCase();
+  const password = await ask();
+  rl.close();
 
   const [admin] = await db
     .select({
@@ -17,13 +33,12 @@ async function main() {
       passwordHash: admins.passwordHash,
     })
     .from(admins)
-    .where(
-      or(eq(admins.username, identifier), eq(admins.email, identifier)),
-    )
+    .where(eq(admins.username, identifier))
     .limit(1);
 
   if (!admin) {
     console.log("FAIL: admin tidak ditemukan");
+    await client.end();
     process.exit(1);
   }
 
@@ -37,13 +52,15 @@ async function main() {
     console.log("LOGIN LOGIC: PASS");
   } else {
     console.log("LOGIN LOGIC: FAIL");
+    await client.end();
     process.exit(1);
   }
+
+  await client.end();
 }
 
-main()
-  .then(() => client.end())
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+main().catch(async (error) => {
+  console.error(error);
+  await client.end();
+  process.exit(1);
+});

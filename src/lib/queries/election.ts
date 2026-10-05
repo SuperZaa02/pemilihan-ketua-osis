@@ -7,6 +7,11 @@ import { elections, type Election } from "@/db/schema";
  * Pemilihan berjalan: pemilihan dengan status "open", atau kalau tidak
  * ada, pemilihan terbaru (draft/closed) — agar halaman admin tetap bisa
  * mengatur pemilihan berikutnya.
+ *
+ * CATATAN CACHING: fungsi ini sengaja TIDAK di-cache. Data pemilihan
+ * menentukan eligibility voting & panel admin, jadi harus selalu fresh
+ * per request. Halaman publik yang di-cache memanggil ini lewat boundary
+ * cache masing-masing (lihat src/lib/queries/cached.ts).
  */
 export async function getActiveElection(): Promise<Election | null> {
   const open = await db

@@ -1,7 +1,7 @@
 import { count, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { candidates, voters, votes } from "@/db/schema";
+import { candidates, placements, voters, votes } from "@/db/schema";
 
 export type ElectionResults = {
   totalVoters: number;
@@ -12,7 +12,7 @@ export type ElectionResults = {
   perCandidate: Array<{
     id: string;
     fullName: string;
-    className: string;
+    placementName: string;
     photoUrl: string | null;
     status: "active" | "inactive";
     voteCount: number;
@@ -44,17 +44,18 @@ export async function getElectionResults(): Promise<ElectionResults> {
     .select({
       id: candidates.id,
       fullName: candidates.fullName,
-      className: candidates.className,
+      placementName: placements.name,
       photoUrl: candidates.photoUrl,
       status: candidates.status,
       voteCount: sql<number>`COUNT(${votes.id})`.mapWith(Number),
     })
     .from(candidates)
+    .innerJoin(placements, eq(candidates.placementId, placements.id))
     .leftJoin(votes, eq(votes.candidateId, candidates.id))
     .groupBy(
       candidates.id,
       candidates.fullName,
-      candidates.className,
+      placements.name,
       candidates.photoUrl,
       candidates.status,
     )

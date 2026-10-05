@@ -2,20 +2,25 @@ import type { Metadata } from "next";
 import { Vote } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import { IdentityForm } from "@/components/vote/identity-form";
+import { VoterLoginForm } from "@/components/vote/voter-login-form";
 import { getVoterSession } from "@/lib/auth/voter-session";
-import { getActiveElection } from "@/lib/queries/election";
+import { getCachedActiveElection } from "@/lib/queries/cached";
+import { getAllPlacements } from "@/lib/queries/placements";
 
 export const metadata: Metadata = {
   title: "Vote | Pemilihan Ketua OSIS",
 };
 
-export const dynamic = "force-dynamic";
-
+/**
+ * Halaman publik PAKAI CACHE — TANPA force-dynamic.
+ * Cache di-revalidate lewat updateTag("election") saat admin
+ * membuka/menutup/mengubah pemilihan. getVoterSession() membaca cookies,
+ * yang otomatis membuat request ini dynamic tanpa perlu force-dynamic.
+ */
 const ERROR_MESSAGES: Record<string, string> = {
   "not-available":
     "Belum ada pemilihan yang tersedia. Silakan hubungi panitia.",
-  session: "Sesi Anda berakhir. Silakan masukkan identitas kembali.",
+  session: "Sesi Anda berakhir. Silakan pilih kelas dan nama kembali.",
   "not-found": "Data pemilih tidak ditemukan. Silakan coba lagi.",
 };
 
@@ -26,25 +31,28 @@ export default async function VotePage({
 }) {
   const { error } = await searchParams;
 
-  // Sudah lolos identitas? langsung ke daftar kandidat.
+  // Sudah login? langsung ke daftar kandidat.
   const voterSession = await getVoterSession();
   if (voterSession) {
     redirect("/vote/candidates");
   }
 
-  const election = await getActiveElection();
+  const [election, placements] = await Promise.all([
+    getCachedActiveElection(),
+    getAllPlacements(),
+  ]);
 
   if (!election || election.status !== "open") {
     return (
       <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16">
         <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-zinc-100">
-            <Vote aria-hidden className="size-6 text-zinc-400" />
+            <Vote aria-hidden className="size-6 text-zinc-500" />
           </div>
           <h1 className="text-lg font-semibold text-zinc-900">
             Pemungutan suara belum dibuka
           </h1>
-          <p className="mt-2 text-sm text-zinc-500">
+          <p className="mt-2 text-sm text-zinc-600">
             {election
               ? "Pemilihan sedang tidak berlangsung. Silakan kembali pada jadwal yang ditentukan."
               : "Belum ada pemilihan yang dijadwalkan. Silakan hubungi panitia."}
@@ -68,8 +76,8 @@ export default async function VotePage({
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
             {election.name}
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Masukkan identitas Anda untuk memulai
+          <p className="mt-1 text-sm text-zinc-600">
+            Pilih kelas dan nama Anda untuk memulai
           </p>
         </div>
 
@@ -82,9 +90,10 @@ export default async function VotePage({
               {errorMessage}
             </p>
           )}
-          <IdentityForm
+          <VoterLoginForm
             electionName={election.name}
-            allowedClasses={election.allowedClasses}
+            allowedPlacements={election.allowedPlacements}
+            placements={placements}
           />
         </div>
       </div>

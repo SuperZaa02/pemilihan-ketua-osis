@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, client } from "../src/db";
 import {
   candidates,
+  placements,
   elections as electionsTable,
   voters,
   votes as votesTable,
@@ -31,14 +32,26 @@ async function main() {
 
   const allCandidates = await db.select().from(candidates);
   const student = await db
-    .select()
+    .select({
+      id: voters.id,
+      fullName: voters.fullName,
+      type: voters.type,
+      placementName: placements.name,
+    })
     .from(voters)
+    .innerJoin(placements, eq(voters.placementId, placements.id))
     .where(eq(voters.fullName, "Budi Santoso"))
     .limit(1)
     .then((r) => r[0]!);
   const teacher = await db
-    .select()
+    .select({
+      id: voters.id,
+      fullName: voters.fullName,
+      type: voters.type,
+      placementName: placements.name,
+    })
     .from(voters)
+    .innerJoin(placements, eq(voters.placementId, placements.id))
     .where(eq(voters.type, "teacher"))
     .limit(1)
     .then((r) => r[0]!);

@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Foto kandidat disimpan lokal di public/uploads.
+  experimental: {
+    serverActions: {
+      // Allow multipart fields in addition to the 25 MiB file itself.
+      bodySizeLimit: "30mb",
+    },
+  },
   images: {
     remotePatterns: [],
   },

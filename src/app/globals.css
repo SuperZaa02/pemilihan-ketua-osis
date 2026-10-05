@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
+/*
+ * Tema selalu LIGHT untuk semua halaman.
+ * prefers-color-scheme dark tidak lagi mengubah background/foreground —
+ * sebelumnya teks abu-abu gelap menyatu dengan background gelap.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafafa; /* zinc-50 */
+  --foreground: #18181b; /* zinc-900 */
 }
 
 @theme inline {
@@ -12,11 +17,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { serverEnv } from "@/lib/env";
 
 /**
- * Voting session: menandai pemilih yang sudah lolos validasi identitas
+ * Voting session: menandai pemilih yang sudah login melalui daftar kelas
  * di /vote. Payload minimal + signed HMAC (sama seperti session admin),
  * httpOnly — client tidak bisa memanipulasi voterId.
  */

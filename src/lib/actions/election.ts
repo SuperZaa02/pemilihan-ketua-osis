@@ -1,12 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 import { z } from "zod";
 
 import { db } from "@/db";
-import { elections, votes } from "@/db/schema";
+import { candidates, elections, voters, votes } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getActiveElection } from "@/lib/queries/election";
 
@@ -19,6 +19,7 @@ function revalidateAll() {
   revalidatePath("/admin");
   revalidatePath("/admin/election");
   revalidatePath("/admin/results");
+  updateTag("election");
   revalidatePath("/vote");
 }
 
@@ -27,9 +28,10 @@ const electionSchema = z
     name: z.string().trim().min(3, "Nama pemilihan minimal 3 karakter").max(120),
     startsAt: z.string().min(1, "Waktu mulai wajib diisi"),
     endsAt: z.string().min(1, "Waktu selesai wajib diisi"),
-    // Teks daftar kelas, satu per baris atau dipisah koma: "X, XI, XII".
-    allowedClassesRaw: z.string().max(500),
-    allowTeachers: z.boolean(),
+    // Daftar nama placement yang boleh memilih (dari dropdown multi-select).
+    allowedPlacements: z
+      .array(z.string().max(60))
+      .max(200, "Terlalu banyak kelas dipilih"),
   })
   .refine(
     (data) => new Date(data.startsAt) < new Date(data.endsAt),
@@ -49,25 +51,20 @@ export async function saveElectionAction(
     name: formData.get("name"),
     startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"),
-    allowedClassesRaw: formData.get("allowedClasses") ?? "",
-    allowTeachers: formData.get("allowTeachers") === "on",
+    allowedPlacements: formData.getAll("allowedPlacements").filter(
+      (v): v is string => typeof v === "string",
+    ),
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Input tidak valid.", success: null };
   }
 
-  const allowedClasses = parsed.data.allowedClassesRaw
-    .split(/[\n,]+/)
-    .map((c) => c.trim().toUpperCase())
-    .filter(Boolean);
-
   const values = {
     name: parsed.data.name,
     startsAt: new Date(parsed.data.startsAt),
     endsAt: new Date(parsed.data.endsAt),
-    allowedClasses,
-    allowTeachers: parsed.data.allowTeachers,
+    allowedPlacements: parsed.data.allowedPlacements,
     createdBy: session.sub,
   };
 
@@ -108,5 +105,22 @@ export async function resetResultsAction(): Promise<void> {
   await requireAdmin();
 
   await db.delete(votes);
+  revalidateAll();
+}
+
+/**
+ * Hapus SEMUA data pemilihan: semua suara, kandidat, dan pemilih.
+ * Placement, pengaturan pemilihan, dan akun admin tidak ikut terhapus.
+ */
+export async function deleteAllElectionDataAction(): Promise<void> {
+  await requireAdmin();
+
+  // Urutan penting: votes -> voters -> candidates (FK, meski cascade).
+  await db.transaction(async (tx) => {
+    await tx.delete(votes);
+    await tx.delete(voters);
+    await tx.delete(candidates);
+  });
+
   revalidateAll();
 }

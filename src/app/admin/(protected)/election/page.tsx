@@ -1,26 +1,41 @@
 import { Hourglass, Lock, Play } from "lucide-react";
 
+import { ChangePasswordForm } from "@/components/admin/change-password-form";
 import {
+  Collapsible,
+  ConfirmSubmitButton,
   ElectionForm,
+  PlacementManager,
 } from "@/components/admin/election-form";
 import { Card, PageHeader, StatusBadge } from "@/components/ui";
-import { setElectionStatusAction } from "@/lib/actions/election";
+import { deleteAllElectionDataAction, setElectionStatusAction } from "@/lib/actions/election";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getActiveElection } from "@/lib/queries/election";
+import { getPlacementsWithUsage } from "@/lib/queries/placements";
 
 export const metadata = {
-  title: "Pengaturan Pemilihan | Pemilihan Ketua OSIS",
+  title: "Pengaturan | Pemilihan Ketua OSIS",
 };
 
 export default async function AdminElectionPage() {
   await requireAdmin();
-  const election = await getActiveElection();
+  // Halaman admin TIDAK di-cache: selalu data terbaru per request.
+  const [election, placementsWithUsage] = await Promise.all([
+    getActiveElection(),
+    getPlacementsWithUsage(),
+  ]);
+
+  const placementOptions = placementsWithUsage.map((p) => ({
+    id: p.id,
+    name: p.name,
+    type: p.type,
+  }));
 
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
-        title="Pengaturan Pemilihan"
-        description="Atur periode, target pemilih, dan status pemilihan."
+        title="Pengaturan"
+        description="Atur pemilihan, kelola daftar kelas, dan akun admin."
       />
 
       {election && (
@@ -30,7 +45,7 @@ export default async function AdminElectionPage() {
               <h2 className="font-medium text-zinc-900">{election.name}</h2>
               <StatusBadge status={election.status} />
             </div>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-zinc-600">
               {new Intl.DateTimeFormat("id-ID", {
                 dateStyle: "long",
                 timeStyle: "short",
@@ -41,9 +56,8 @@ export default async function AdminElectionPage() {
                 timeStyle: "short",
               }).format(election.endsAt)}
             </p>
-            <p className="mt-1 text-sm text-zinc-500">
-              Kelas diizinkan: {election.allowedClasses.join(", ") || "-"}
-              {election.allowTeachers ? " · Guru boleh memilih" : ""}
+            <p className="mt-1 text-sm text-zinc-600">
+              Kelas diizinkan: {election.allowedPlacements.join(", ") || "-"}
             </p>
           </div>
 
@@ -77,7 +91,7 @@ export default async function AdminElectionPage() {
                 <input type="hidden" name="status" value="draft" />
                 <button
                   type="submit"
-                  className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+                  className="flex items-center gap-1.5 rounded-md border border-zinc-300 px-3.5 py-2 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-50"
                 >
                   <Hourglass aria-hidden className="size-4" />
                   Kembalikan ke Draft
@@ -88,9 +102,35 @@ export default async function AdminElectionPage() {
         </Card>
       )}
 
-      <Card className="p-5">
-        <ElectionForm election={election} />
-      </Card>
+      <Collapsible title="Pengaturan Pemilihan" defaultOpen>
+        <ElectionForm election={election} placements={placementOptions} />
+      </Collapsible>
+
+      <Collapsible title="Daftar Kelas / Penempatan">
+        <PlacementManager placements={placementsWithUsage} />
+      </Collapsible>
+
+      <Collapsible title="Ganti Password Admin">
+        <ChangePasswordForm />
+      </Collapsible>
+
+      <Collapsible title="Zona Bahaya">
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-zinc-600">
+            Menghapus <strong className="text-zinc-900">semua data pemilihan</strong>:
+            seluruh suara, kandidat, dan pemilih dihapus permanen. Daftar kelas,
+            pengaturan pemilihan, dan akun admin tidak ikut terhapus.
+          </p>
+          <form action={deleteAllElectionDataAction}>
+            <ConfirmSubmitButton
+              message="Hapus SEMUA suara, kandidat, dan pemilih? Tindakan ini tidak bisa dibatalkan."
+              className="w-fit rounded-md border border-red-300 bg-red-50 px-3.5 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
+            >
+              Hapus Semua Data Pemilihan
+            </ConfirmSubmitButton>
+          </form>
+        </div>
+      </Collapsible>
     </section>
   );
 }

@@ -1,30 +1,42 @@
 import "dotenv/config";
 
 import { db, client } from "./index";
-import { candidates, elections, voters, admins } from "./schema";
-import { hashPassword } from "../lib/auth/password";
+import { candidates, elections, placements, voters } from "./schema";
 
 /**
- * Seed data demo lengkap: admin, 3 kandidat, pemilih contoh,
+ * Seed data DEMO: placement (kelas), 3 kandidat, pemilih contoh,
  * dan pengaturan pemilihan (status draft — admin yang membuka).
+ * TIDAK membuat admin — gunakan `pnpm run db:seed` untuk itu.
  * Idempotent: aman dijalankan berulang.
  */
 async function main() {
-  // --- Admin ---
-  const username = (process.env.ADMIN_USERNAME ?? "admin").toLowerCase();
-  const password = process.env.ADMIN_PASSWORD ?? "admin12345";
-  const name = process.env.ADMIN_NAME ?? "Administrator";
+  // --- Placement / kelas ---
+  const placementNames = [
+    "X.1", "X.2", "X.3", "X.4",
+    "XI.1", "XI.2", "XI.3", "XI.4",
+    "XII.1", "XII.2", "XII.3", "XII.4",
+    "GURU",
+  ];
 
-  const existingAdmin = await db.select({ id: admins.id }).from(admins).limit(1);
+  const existingPlacements = await db
+    .select({ id: placements.id, name: placements.name })
+    .from(placements);
+  const byName = new Map(existingPlacements.map((p) => [p.name, p.id]));
 
-  if (existingAdmin.length === 0) {
-    await db
-      .insert(admins)
-      .values({ username, passwordHash: hashPassword(password), name });
-    console.log(`Admin "${username}" dibuat.`);
-  } else {
-    console.log("Admin sudah ada, dilewati.");
+  for (const name of placementNames) {
+    if (byName.has(name)) continue;
+    const [created] = await db
+      .insert(placements)
+      .values({
+        name,
+        type: name === "GURU" ? "teacher" : "student",
+      })
+      .returning({ id: placements.id });
+    byName.set(name, created.id);
   }
+  console.log(`${placementNames.length} placement siap.`);
+
+  const placementId = (name: string) => byName.get(name)!;
 
   // --- Kandidat ---
   const candidateCount = await db.select({ id: candidates.id }).from(candidates).limit(1);
@@ -32,7 +44,7 @@ async function main() {
     await db.insert(candidates).values([
       {
         fullName: "Raka Pratama",
-        className: "XI RPL 1",
+        placementId: placementId("XI.1"),
         bio: "Putra dari pasangan Bpk. Hendra & Ibu Wati. Aktif di ekstrakurikuler basket dan OSIS.",
         vision:
           "Mewujudkan OSIS yang aktif, kreatif, dan menjadi jembatan antara siswa dan sekolah.",
@@ -42,16 +54,17 @@ async function main() {
       },
       {
         fullName: "Salsabila Putri",
-        className: "XI MIPA 2",
-        bio: "Putri dari pasangan Bpk. Ahmad & Iu Rina. Ketua kelas 2 periode, aktif debat.",
-        vision: "OSIS yang inklusif dan disiplin, dengan prestasi non-akademik yang meningkat.",
+        placementId: placementId("XI.3"),
+        bio: "Putri dari pasangan Bpk. Ahmad & Ibu Rina. Ketua kelas 2 periode, aktif debat.",
+        vision:
+          "OSIS yang inklusif dan disiplin, dengan prestasi non-akademik yang meningkat.",
         mission:
-          "1. Lomba antar-kelas bulanan.\n2. Program tutor sebaya.\n3.perbaikan kantin sehat.",
+          "1. Lomba antar-kelas bulanan.\n2. Program tutor sebaya.\n3. Perbaikan kantin sehat.",
         status: "active",
       },
       {
         fullName: "Dimas Anggara",
-        className: "X IPS 1",
+        placementId: placementId("XII.2"),
         bio: "Putra dari pasangan Bpk. Surya & Ibu Melati. Atlet renang provinsi.",
         vision: "Membangun budaya sportivitas dan kebersamaan di sekolah.",
         mission:
@@ -68,12 +81,12 @@ async function main() {
   const voterCount = await db.select({ id: voters.id }).from(voters).limit(1);
   if (voterCount.length === 0) {
     await db.insert(voters).values([
-      { fullName: "Budi Santoso", type: "student", placement: "XI RPL 1" },
-      { fullName: "Siti Aminah", type: "student", placement: "XI RPL 1" },
-      { fullName: "Agus Wijaya", type: "student", placement: "X TKJ 2" },
-      { fullName: "Rina Marlina", type: "student", placement: "X IPS 1" },
-      { fullName: "Pak Andi", type: "teacher", placement: "GURU" },
-      { fullName: "Bu Sari", type: "teacher", placement: "GURU" },
+      { fullName: "Budi Santoso", type: "student", placementId: placementId("XI.1") },
+      { fullName: "Siti Aminah", type: "student", placementId: placementId("XI.1") },
+      { fullName: "Agus Wijaya", type: "student", placementId: placementId("X.2") },
+      { fullName: "Rina Marlina", type: "student", placementId: placementId("XII.2") },
+      { fullName: "Andi Kurniawan", type: "teacher", placementId: placementId("GURU") },
+      { fullName: "Sari Wulandari", type: "teacher", placementId: placementId("GURU") },
     ]);
     console.log("6 pemilih demo dibuat.");
   } else {
@@ -93,8 +106,8 @@ async function main() {
       status: "draft",
       startsAt,
       endsAt,
-      allowedClasses: ["X", "XI", "XII"],
-      allowTeachers: true,
+      // Semua kelas siswa + guru ikut (admin bisa ubah di Pengaturan).
+      allowedPlacements: ["X.1", "X.2", "X.3", "X.4", "XI.1", "XI.2", "XI.3", "XI.4", "XII.1", "XII.2", "XII.3", "XII.4", "GURU"],
     });
     console.log("Pengaturan pemilihan demo dibuat (status: draft).");
   } else {

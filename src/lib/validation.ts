@@ -21,8 +21,27 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, "Password saat ini wajib diisi")
+      .max(128),
+    newPassword: z
+      .string()
+      .min(8, "Password baru minimal 8 karakter")
+      .max(128, "Password baru maksimal 128 karakter"),
+    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Konfirmasi password tidak sama dengan password baru.",
+    path: ["confirmPassword"],
+  });
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 /**
- * Skala huruf pertama penempatan/kelas agar konsisten di database,
+ * Nama placement/kelas dinormalisasi agar konsisten di database,
  * contoh: "xi rpl 1" -> "XI RPL 1".
  */
 export function normalizePlacement(value: string): string {

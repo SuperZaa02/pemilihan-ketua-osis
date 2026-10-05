@@ -1,10 +1,18 @@
-import { Search, Trash } from "lucide-react";
+import { RotateCcw, Search, Trash } from "lucide-react";
 
-import { Collapsible, ConfirmSubmitButton } from "@/components/admin/election-form";
-import { VoterForm, VoterImportForm } from "@/components/admin/voter-forms";
+import { ConfirmSubmitButton, Collapsible } from "@/components/admin/election-form";
+import {
+  ResetVoteButton,
+  VoterForm,
+  VoterImportForm,
+} from "@/components/admin/voter-forms";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
-import { deleteVoterAction } from "@/lib/actions/voters";
+import {
+  deleteVoterAction,
+  resetVoterVoteAction,
+} from "@/lib/actions/voters";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { getAllPlacements } from "@/lib/queries/placements";
 import { getVotersWithVoteStatus } from "@/lib/queries/voters";
 
 export const metadata = {
@@ -19,7 +27,18 @@ export default async function AdminVotersPage({
   await requireAdmin();
   const { q } = await searchParams;
 
-  const voters = await getVotersWithVoteStatus({ search: q });
+  // Halaman admin TIDAK di-cache: selalu data terbaru per request.
+  const [voters, placements] = await Promise.all([
+    getVotersWithVoteStatus({ search: q }),
+    getAllPlacements(),
+  ]);
+
+  const placementOptions = placements.map((p) => ({
+    id: p.id,
+    name: p.name,
+    type: p.type,
+  }));
+
   const totalVoters = voters.length;
   const votedCount = voters.filter((v) => v.hasVoted).length;
 
@@ -30,12 +49,12 @@ export default async function AdminVotersPage({
         description={`${totalVoters} pemilih terdaftar · ${votedCount} sudah memilih`}
       />
 
-      <Collapsible title="Tambah Pemilih">
-        <VoterForm />
-      </Collapsible>
+      <Card>
+        <VoterForm placements={placementOptions} />
+      </Card>
 
       <Collapsible title="Import Massal">
-        <VoterImportForm />
+        <VoterImportForm placements={placementOptions} />
       </Collapsible>
 
       <Card className="flex flex-col">
@@ -68,10 +87,10 @@ export default async function AdminVotersPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 text-left text-xs uppercase tracking-wide text-zinc-400">
+                <tr className="border-b border-zinc-100 text-left text-xs uppercase tracking-wide text-zinc-500">
                   <th className="px-4 py-3 font-medium">Nama</th>
                   <th className="px-4 py-3 font-medium">Tipe</th>
-                  <th className="px-4 py-3 font-medium">Penempatan</th>
+                  <th className="px-4 py-3 font-medium">Kelas</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -80,20 +99,20 @@ export default async function AdminVotersPage({
                 {voters.map((voter) => (
                   <tr
                     key={voter.id}
-                    className="border-b border-zinc-50 last:border-0"
+                    className="border-b border-zinc-100 last:border-0"
                   >
                     <td className="px-4 py-3 font-medium text-zinc-900">
                       {voter.fullName}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">
+                    <td className="px-4 py-3 text-zinc-700">
                       {voter.type === "student" ? "Siswa" : "Guru"}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">
-                      {voter.placement}
+                    <td className="px-4 py-3 text-zinc-700">
+                      {voter.placementName}
                     </td>
                     <td className="px-4 py-3">
                       {voter.hasVoted ? (
-                        <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
+                        <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">
                           Sudah memilih
                         </span>
                       ) : (
@@ -102,17 +121,25 @@ export default async function AdminVotersPage({
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <form action={deleteVoterAction}>
-                        <input type="hidden" name="id" value={voter.id} />
-                        <ConfirmSubmitButton
-                          message={`Hapus pemilih "${voter.fullName}"?`}
-                          className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
-                        >
-                          <Trash aria-hidden className="inline size-3.5" />
-                          <span className="ml-1">Hapus</span>
-                        </ConfirmSubmitButton>
-                      </form>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        {voter.hasVoted && (
+                          <form action={resetVoterVoteAction}>
+                            <input type="hidden" name="id" value={voter.id} />
+                            <ResetVoteButton voterName={voter.fullName} />
+                          </form>
+                        )}
+                        <form action={deleteVoterAction}>
+                          <input type="hidden" name="id" value={voter.id} />
+                          <ConfirmSubmitButton
+                            message={`Hapus pemilih "${voter.fullName}"?`}
+                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
+                          >
+                            <Trash aria-hidden className="inline size-3.5" />
+                            <span className="ml-1">Hapus</span>
+                          </ConfirmSubmitButton>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -121,6 +148,14 @@ export default async function AdminVotersPage({
           </div>
         )}
       </Card>
+
+      {votedCount > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-zinc-600">
+          <RotateCcw aria-hidden className="size-3.5" />
+          &quot;Reset Pilihan&quot; menghapus suara pemilih tersebut sehingga bisa
+          memilih ulang (mis. salah pilih atau masalah kepanitiaan).
+        </p>
+      )}
     </section>
   );
 }

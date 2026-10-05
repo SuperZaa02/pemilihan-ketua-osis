@@ -85,6 +85,7 @@ export default async function AdminResultsPage() {
                     fill
                     className="object-cover"
                     sizes="40px"
+                    unoptimized
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm font-semibold text-zinc-400">
@@ -97,8 +98,8 @@ export default async function AdminResultsPage() {
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="truncate font-medium text-zinc-900">
                     {candidate.fullName}
-                    <span className="ml-2 text-xs font-normal text-zinc-400">
-                      {candidate.className}
+                    <span className="ml-2 text-xs font-normal text-zinc-500">
+                      {candidate.placementName}
                     </span>
                   </p>
                   <p className="shrink-0 text-sm font-medium text-zinc-900">

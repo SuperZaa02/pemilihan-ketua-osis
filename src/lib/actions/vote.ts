@@ -1,12 +1,12 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { and, eq, isNull } from "drizzle-orm";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { candidates, voters, votes } from "@/db/schema";
+import { candidates, placements, voters, votes } from "@/db/schema";
 import {
   destroyVoterSession,
   createVoterSession,
@@ -14,94 +14,111 @@ import {
 } from "@/lib/auth/voter-session";
 import { checkEligibility } from "@/lib/queries/eligibility";
 import { getActiveElection } from "@/lib/queries/election";
-import { findVoterByIdentity } from "@/lib/queries/voters";
+import { getVotersForPlacement } from "@/lib/queries/voters";
 
-// ---------- Langkah 1: identitas ----------
+// ---------- Pilih kelas dan pemilih ----------
 
-const identitySchema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(3, "Nama lengkap minimal 3 karakter")
-    .max(120),
-  placement: z.string().trim().min(2, "Penempatan wajib diisi").max(60),
+const placementSchema = z.object({
+  placementId: z.string().regex(/^[0-9a-f-]{36}$/i, "Pilih kelas yang valid."),
 });
 
-export type IdentityState = {
+export type VoterListState = {
   error: string | null;
-  /** Data untuk preview konfirmasi ("Apakah Anda ...?"). */
-  matched: { fullName: string; placement: string; type: string } | null;
+  placementId: string | null;
+  voters: { id: string; fullName: string; type: "student" | "teacher"; hasVoted: boolean }[];
 };
 
-export async function identifyVoterAction(
-  _prev: IdentityState,
+export async function loadVotersByPlacementAction(
+  _prev: VoterListState,
   formData: FormData,
-): Promise<IdentityState> {
-  const parsed = identitySchema.safeParse({
-    fullName: formData.get("fullName"),
-    placement: formData.get("placement"),
+): Promise<VoterListState> {
+  const parsed = placementSchema.safeParse({
+    placementId: formData.get("placementId"),
   });
 
   if (!parsed.success) {
     return {
       error: parsed.error.issues[0]?.message ?? "Input tidak valid.",
-      matched: null,
+      placementId: null,
+      voters: [],
     };
   }
 
-  const voter = await findVoterByIdentity(
-    parsed.data.fullName,
-    parsed.data.placement,
-  );
+  const election = await getActiveElection();
+  if (!election) {
+    return { error: "Belum ada pemilihan yang tersedia.", placementId: null, voters: [] };
+  }
 
-  if (!voter) {
-    // Pesan generik: tidak membocorkan data pemilih mana yang ada.
+  const [placement] = await db
+    .select({ id: placements.id, name: placements.name, type: placements.type })
+    .from(placements)
+    .where(eq(placements.id, parsed.data.placementId))
+    .limit(1);
+
+  if (!placement) {
     return {
-      error:
-        "Data tidak ditemukan. Periksa ejaan nama dan penempatan, atau hubungi panitia.",
-      matched: null,
+      error: "Kelas tidak ditemukan.",
+      placementId: null,
+      voters: [],
     };
   }
+
+  const placementAllowed = election.allowedPlacements.some(
+    (name) => name.trim().toUpperCase() === placement.name.trim().toUpperCase(),
+  );
+  if (!placementAllowed) {
+    return {
+      error: "Kelas ini tidak diizinkan memilih pada pemilihan ini.",
+      placementId: null,
+      voters: [],
+    };
+  }
+
+  const eligibility = checkEligibility(
+    { type: placement.type, placementName: placement.name },
+    election,
+  );
+  if (!eligibility.eligible) {
+    return { error: eligibility.reason, placementId: null, voters: [] };
+  }
+
+  const voterList = await getVotersForPlacement(placement.id);
 
   return {
-    error: null,
-    matched: {
-      fullName: voter.fullName,
-      placement: voter.placement,
-      type: voter.type,
-    },
+    error: voterList.length === 0 ? "Belum ada pemilih terdaftar di kelas ini." : null,
+    placementId: placement.id,
+    voters: voterList,
   };
 }
 
-// ---------- Langkah 2: konfirmasi identitas ----------
+// ---------- Login pemilih ----------
 
-const confirmSchema = z.object({
-  fullName: z.string().trim().min(3).max(120),
-  placement: z.string().trim().min(2).max(60),
+const voterSchema = z.object({
+  voterId: z.string().regex(/^[0-9a-f-]{36}$/i, "Pilih nama pemilih yang valid."),
 });
 
-export async function confirmIdentityAction(
-  formData: FormData,
-): Promise<void> {
-  const parsed = confirmSchema.safeParse({
-    fullName: formData.get("fullName"),
-    placement: formData.get("placement"),
-  });
-
+export async function loginVoterAction(formData: FormData): Promise<void> {
+  const parsed = voterSchema.safeParse({ voterId: formData.get("voterId") });
   if (!parsed.success) {
-    redirect("/vote");
+    redirect("/vote?error=not-found");
   }
 
-  const voter = await findVoterByIdentity(
-    parsed.data.fullName,
-    parsed.data.placement,
-  );
+  const [voter] = await db
+    .select({
+      id: voters.id,
+      fullName: voters.fullName,
+      type: voters.type,
+      placementName: placements.name,
+    })
+    .from(voters)
+    .innerJoin(placements, eq(voters.placementId, placements.id))
+    .where(eq(voters.id, parsed.data.voterId))
+    .limit(1);
 
   if (!voter) {
-    redirect("/vote");
+    redirect("/vote?error=not-found");
   }
 
-  // Eligibility dicek ulang di server (jangan percaya alur client).
   const election = await getActiveElection();
   if (!election) {
     redirect("/vote?error=not-available");
@@ -112,7 +129,6 @@ export async function confirmIdentityAction(
     redirect(`/vote?error=${encodeURIComponent(eligibility.reason)}`);
   }
 
-  // Sudah pernah memilih? blokir dengan pesan jelas.
   const [existingVote] = await db
     .select({ id: votes.id })
     .from(votes)
@@ -120,9 +136,7 @@ export async function confirmIdentityAction(
     .limit(1);
 
   if (existingVote) {
-    redirect(
-      `/vote?error=${encodeURIComponent("Anda sudah menggunakan hak pilih.")}`,
-    );
+    redirect(`/vote?error=${encodeURIComponent("Anda sudah menggunakan hak pilih.")}`);
   }
 
   await createVoterSession(voter.id);
@@ -146,14 +160,20 @@ export async function submitVoteAction(formData: FormData): Promise<void> {
 
   const voterSession = await getVoterSession();
   if (!voterSession) {
-    // Session kedaluwarsa/invalid -> ulang alur identitas.
+    // Session kedaluwarsa/invalid -> ulang alur login pemilih.
     redirect("/vote?error=session");
   }
 
   // Ambil ulang voter + election dari DB (jangan percaya client).
   const [voter] = await db
-    .select()
+    .select({
+      id: voters.id,
+      fullName: voters.fullName,
+      type: voters.type,
+      placementName: placements.name,
+    })
     .from(voters)
+    .innerJoin(placements, eq(voters.placementId, placements.id))
     .where(eq(voters.id, voterSession.vid))
     .limit(1);
 
@@ -201,8 +221,16 @@ export async function submitVoteAction(formData: FormData): Promise<void> {
     redirect("/vote/done");
   }
 
-  // Insert final. UNIQUE(voter_id) menjamin satu pemilih satu suara:
-  // kalau terjadi race condition, insert kedua gagal di level database.
+  /**
+   * Anti race condition (double-vote):
+   * 1. UNIQUE(voter_id) di level database menolak insert kedua — lapisan
+   *    terakhir yang tidak bisa ditembus bug logika maupun request paralel.
+   * 2. Update identityConfirmedAt diberi kondisi IS NULL: hanya SUARA BARU
+   *    yang mengubah status, jadi reset pilihan oleh admin tidak menandai
+   *    pemilih "sudah konfirmasi" secara keliru.
+   * 3. Insert vote dilakukan lebih dulu dalam transaksi; kegagalan apa pun
+   *    (termasuk pelanggaran unique) mengarahkan pemilih dengan aman.
+   */
   try {
     await db.transaction(async (tx) => {
       await tx.insert(votes).values({
@@ -213,16 +241,20 @@ export async function submitVoteAction(formData: FormData): Promise<void> {
       await tx
         .update(voters)
         .set({ identityConfirmedAt: new Date() })
-        .where(eq(voters.id, voter.id));
+        .where(
+          and(eq(voters.id, voter.id), isNull(voters.identityConfirmedAt)),
+        );
     });
   } catch {
     // Pelanggaran unique / race condition -> anggap sudah memilih.
+    await destroyVoterSession();
     redirect("/vote/done");
   }
 
   await destroyVoterSession();
   revalidatePath("/admin/results");
   revalidatePath("/admin");
+  updateTag("election"); // status partisipasi tampil di halaman publik
   redirect("/vote/done");
 }
 

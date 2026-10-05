@@ -7,19 +7,21 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { placements } from "./placement";
 import { voterTypeEnum } from "./enums";
 
 // Tipe pemilih: siswa atau guru.
-// - student -> placement berisi kelas (contoh: "XI RPL 1")
-// - teacher -> placement selalu "GURU"
+// Placement adalah FK ke tabel placements — strict, tidak ada teks bebas.
 export const voters = pgTable(
   "voters",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     fullName: text("full_name").notNull(),
     type: voterTypeEnum("type").notNull(),
-    placement: text("placement").notNull(),
-    // Audit: ditandai saat pemilih ini menempuh alur identitas di /vote.
+    placementId: uuid("placement_id")
+      .notNull()
+      .references(() => placements.id, { onDelete: "restrict" }),
+    // Audit: ditandai setelah suara pemilih berhasil tercatat.
     // Kebenaran final satu-pemilih-satu-suara tetap di tabel votes.
     identityConfirmedAt: timestamp("identity_confirmed_at", {
       withTimezone: true,
@@ -33,12 +35,12 @@ export const voters = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    // Lookup utama saat pemilih mengidentifikasi diri: nama + placement.
+    // Hindari data pemilih duplikat dalam placement yang sama.
     uniqueIndex("voters_name_placement_idx").on(
       table.fullName,
-      table.placement,
+      table.placementId,
     ),
     index("voters_type_idx").on(table.type),
-    index("voters_placement_idx").on(table.placement),
+    index("voters_placement_idx").on(table.placementId),
   ],
 );

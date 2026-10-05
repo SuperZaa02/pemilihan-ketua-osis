@@ -1,5 +1,5 @@
 {
-  "id": "ef2eebf6-a653-42dd-a6d3-306499ca7220",
+  "id": "df703e98-b7d5-4258-8b90-24355bf96a28",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -111,9 +111,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "class_name": {
-          "name": "class_name",
-          "type": "text",
+        "placement_id": {
+          "name": "placement_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -179,9 +179,38 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "candidates_placement_idx": {
+          "name": "candidates_placement_idx",
+          "columns": [
+            {
+              "expression": "placement_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "candidates_placement_id_placements_id_fk": {
+          "name": "candidates_placement_id_placements_id_fk",
+          "tableFrom": "candidates",
+          "tableTo": "placements",
+          "columnsFrom": [
+            "placement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -225,19 +254,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "allowed_classes": {
-          "name": "allowed_classes",
+        "allowed_placements": {
+          "name": "allowed_placements",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
           "default": "'[]'::jsonb"
-        },
-        "allow_teachers": {
-          "name": "allow_teachers",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_by": {
           "name": "created_by",
@@ -284,6 +306,55 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.placements": {
+      "name": "placements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "voter_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'student'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "placements_name_unique": {
+          "name": "placements_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.voters": {
       "name": "voters",
       "schema": "",
@@ -308,9 +379,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "placement": {
-          "name": "placement",
-          "type": "text",
+        "placement_id": {
+          "name": "placement_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -346,7 +417,7 @@
               "nulls": "last"
             },
             {
-              "expression": "placement",
+              "expression": "placement_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -376,7 +447,7 @@
           "name": "voters_placement_idx",
           "columns": [
             {
-              "expression": "placement",
+              "expression": "placement_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -388,7 +459,21 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "voters_placement_id_placements_id_fk": {
+          "name": "voters_placement_id_placements_id_fk",
+          "tableFrom": "voters",
+          "tableTo": "placements",
+          "columnsFrom": [
+            "placement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

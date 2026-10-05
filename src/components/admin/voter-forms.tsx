@@ -1,7 +1,7 @@
 "use client";
 
-import { CircleAlert, CircleCheck } from "lucide-react";
-import { useActionState } from "react";
+import { CircleAlert, CircleCheck, X } from "lucide-react";
+import { useActionState, useState } from "react";
 
 import {
   createVoterAction,
@@ -9,6 +9,7 @@ import {
   type ImportState,
   type VoterFormState,
 } from "@/lib/actions/voters";
+import type { PlacementOption } from "@/components/admin/candidate-form";
 
 const initialState: VoterFormState = { error: null, success: null };
 const initialImportState: ImportState = {
@@ -21,11 +22,12 @@ const initialImportState: ImportState = {
 const inputClass =
   "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none transition-colors focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10";
 
-export function VoterForm() {
+export function VoterForm({ placements }: { placements: PlacementOption[] }) {
   const [state, formAction, isPending] = useActionState(
     createVoterAction,
     initialState,
   );
+  const [type, setType] = useState<"student" | "teacher">("student");
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -49,7 +51,7 @@ export function VoterForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="v-fullName" className="text-sm font-medium">
+        <label htmlFor="v-fullName" className="text-sm font-medium text-zinc-900">
           Nama Lengkap
         </label>
         <input
@@ -64,26 +66,45 @@ export function VoterForm() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="v-type" className="text-sm font-medium">
+          <label htmlFor="v-type" className="text-sm font-medium text-zinc-900">
             Tipe
           </label>
-          <select id="v-type" name="type" defaultValue="student" className={inputClass}>
+          <select
+            id="v-type"
+            name="type"
+            value={type}
+            onChange={(e) => setType(e.target.value as "student" | "teacher")}
+            className={inputClass}
+          >
             <option value="student">Siswa</option>
             <option value="teacher">Guru</option>
           </select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="v-placement" className="text-sm font-medium">
-            Kelas <span className="text-zinc-400">(kosongkan jika guru)</span>
-          </label>
-          <input
-            id="v-placement"
-            name="placement"
-            placeholder="cth: XI RPL 1"
-            className={inputClass}
-          />
-        </div>
+        {type === "student" && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="v-placement" className="text-sm font-medium text-zinc-900">
+              Kelas
+            </label>
+            <select
+              id="v-placement"
+              name="placementId"
+              required
+              className={inputClass}
+            >
+              <option value="" disabled>
+                {placements.length === 0
+                  ? "Belum ada kelas — buat dulu di Pengaturan"
+                  : "Pilih kelas..."}
+              </option>
+              {placements.map((placement) => (
+                <option key={placement.id} value={placement.id}>
+                  {placement.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <button
@@ -97,11 +118,13 @@ export function VoterForm() {
   );
 }
 
-export function VoterImportForm() {
+export function VoterImportForm({ placements }: { placements: PlacementOption[] }) {
   const [state, formAction, isPending] = useActionState(
     importVotersAction,
     initialImportState,
   );
+
+  const studentPlacements = placements.filter((p) => p.type === "student");
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -125,8 +148,8 @@ export function VoterImportForm() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="v-bulk" className="text-sm font-medium">
-          Daftar Pemilih <span className="text-zinc-400">(satu per baris)</span>
+        <label htmlFor="v-bulk" className="text-sm font-medium text-zinc-900">
+          Daftar Pemilih <span className="text-zinc-500">(satu per baris)</span>
         </label>
         <textarea
           id="v-bulk"
@@ -134,16 +157,18 @@ export function VoterImportForm() {
           rows={8}
           required
           className={`${inputClass} font-mono text-xs`}
-          placeholder={`Budi Santoso | student | XI RPL 1
-Siti Aminah | student | X TKJ 2
-Andi Wijaya | teacher`}
+          placeholder={`Budi Santoso | ${studentPlacements[0]?.name ?? "XI.1"}
+Siti Aminah | ${studentPlacements[1]?.name ?? "X.2"}
+Andi Wijaya | GURU`}
         />
       </div>
 
-      <p className="text-xs text-zinc-500">
-        Format: <code className="rounded bg-zinc-100 px-1">Nama | student | KELAS</code>{" "}
-        atau <code className="rounded bg-zinc-100 px-1">Nama | teacher</code>. Duplikat
-        otomatis dilewati.
+      <p className="text-xs text-zinc-600">
+        Format: <code className="rounded bg-zinc-100 px-1">Nama | KELAS</code>{" "}
+        untuk siswa, atau <code className="rounded bg-zinc-100 px-1">Nama</code> saja
+        (atau <code className="rounded bg-zinc-100 px-1">Nama | GURU</code>) untuk guru.
+        Kelas harus sudah terdaftar di tab Kelas — baris dengan kelas yang belum
+        terdaftar akan dilewati.
       </p>
 
       <button
@@ -154,5 +179,41 @@ Andi Wijaya | teacher`}
         {isPending ? "Mengimport..." : "Import Pemilih"}
       </button>
     </form>
+  );
+}
+
+export function ResetVoteButton({ voterName }: { voterName: string }) {
+  const [confirming, setConfirming] = useState(false);
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        title="Reset pilihan pemilih ini"
+        className="inline-flex items-center gap-1 rounded-md border border-amber-300 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-50"
+      >
+        Reset Pilihan
+      </button>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <button
+        type="submit"
+        className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-amber-700"
+      >
+        Ya, reset pilihan {voterName.split(" ")[0]}
+      </button>
+      <button
+        type="button"
+        onClick={() => setConfirming(false)}
+        aria-label="Batal"
+        className="inline-flex size-6 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50"
+      >
+        <X aria-hidden className="size-3.5" />
+      </button>
+    </span>
   );
 }

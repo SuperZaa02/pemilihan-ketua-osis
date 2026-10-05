@@ -8,14 +8,16 @@ import { db } from "@/db";
 import { votes } from "@/db/schema";
 import { submitVoteAction } from "@/lib/actions/vote";
 import { getVoterSession } from "@/lib/auth/voter-session";
-import { getActiveCandidateById } from "@/lib/queries/candidates";
+import { getCachedActiveCandidateById } from "@/lib/queries/cached";
 
 export const metadata: Metadata = {
   title: "Konfirmasi Pilihan | Pemilihan Ketua OSIS",
 };
 
-export const dynamic = "force-dynamic";
-
+/**
+ * PAKAI CACHE untuk detail kandidat (tag "candidates"). Pengecekan
+ * existingVote selalu fresh (query langsung ke tabel votes).
+ */
 export default async function VoteConfirmPage({
   params,
 }: {
@@ -33,7 +35,7 @@ export default async function VoteConfirmPage({
     redirect("/vote");
   }
 
-  const candidate = await getActiveCandidateById(id);
+  const candidate = await getCachedActiveCandidateById(id);
   if (!candidate) {
     redirect("/vote/candidates?error=candidate");
   }
@@ -53,7 +55,7 @@ export default async function VoteConfirmPage({
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
       <Link
         href="/vote/candidates"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-zinc-900"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-600 transition-colors hover:text-zinc-900"
       >
         ← Kembali ke daftar kandidat
       </Link>
@@ -68,9 +70,10 @@ export default async function VoteConfirmPage({
                 fill
                 className="object-cover"
                 sizes="64px"
+                unoptimized
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-xl font-semibold text-zinc-400">
+              <div className="flex h-full items-center justify-center text-xl font-semibold text-zinc-500">
                 {candidate.fullName.charAt(0)}
               </div>
             )}
@@ -79,32 +82,32 @@ export default async function VoteConfirmPage({
             <h1 className="text-lg font-semibold text-zinc-900">
               {candidate.fullName}
             </h1>
-            <p className="text-sm text-zinc-500">{candidate.className}</p>
+            <p className="text-sm text-zinc-600">{candidate.placementName}</p>
           </div>
         </div>
 
         <div className="flex flex-col gap-4 p-5">
           {candidate.bio && (
             <div>
-              <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+              <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                 Identitas
               </h2>
-              <p className="mt-1 text-sm text-zinc-700">{candidate.bio}</p>
+              <p className="mt-1 text-sm text-zinc-800">{candidate.bio}</p>
             </div>
           )}
 
           <div>
-            <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               Visi
             </h2>
-            <p className="mt-1 text-sm text-zinc-700">{candidate.vision}</p>
+            <p className="mt-1 text-sm text-zinc-800">{candidate.vision}</p>
           </div>
 
           <div>
-            <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               Misi
             </h2>
-            <p className="mt-1 whitespace-pre-line text-sm text-zinc-700">
+            <p className="mt-1 whitespace-pre-line text-sm text-zinc-800">
               {candidate.mission}
             </p>
           </div>
@@ -115,7 +118,7 @@ export default async function VoteConfirmPage({
           className="flex flex-col gap-3 border-t border-zinc-100 bg-zinc-50 p-5"
         >
           <input type="hidden" name="candidateId" value={candidate.id} />
-          <label className="flex items-start gap-2 text-sm text-zinc-700">
+          <label className="flex items-start gap-2 text-sm text-zinc-800">
             <input
               type="checkbox"
               name="confirm"

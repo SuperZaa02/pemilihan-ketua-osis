@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { voters } from "@/db/schema";
+import { placements, voters, votes } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { normalizePlacement } from "@/lib/validation";
 
@@ -24,16 +24,27 @@ export type ImportState = {
 function revalidateAdmin() {
   revalidatePath("/admin");
   revalidatePath("/admin/voters");
+  revalidatePath("/admin/results");
 }
-
 // ---------- Tambah satu pemilih ----------
 
 const voterSchema = z.object({
   fullName: z.string().trim().min(3, "Nama lengkap minimal 3 karakter").max(120),
   type: z.enum(["student", "teacher"]),
-  // Untuk siswa: kelas, mis. "XI RPL 1". Untuk guru: "GURU" (otomatis).
-  placement: z.string().trim().max(60),
+  // Strict: siswa wajib pilih placement (UUID) yang sudah dibuat;
+  // guru otomatis ke placement "GURU".
+  placementId: z.string().max(64).optional(),
 });
+
+/** Cari (atau buat jika belum ada) placement khusus guru bernama "GURU". */
+async function findTeacherPlacement(): Promise<string | null> {
+  const [existing] = await db
+    .select({ id: placements.id })
+    .from(placements)
+    .where(eq(placements.name, "GURU"))
+    .limit(1);
+  return existing?.id ?? null;
+}
 
 export async function createVoterAction(
   _prev: VoterFormState,
@@ -44,27 +55,34 @@ export async function createVoterAction(
   const parsed = voterSchema.safeParse({
     fullName: formData.get("fullName"),
     type: formData.get("type"),
-    placement: formData.get("placement"),
+    placementId: formData.get("placementId") ?? "",
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Input tidak valid.", success: null };
   }
 
-  const placement =
-    parsed.data.type === "teacher"
-      ? "GURU"
-      : normalizePlacement(parsed.data.placement);
+  let placementId = parsed.data.placementId ?? "";
 
-  if (parsed.data.type === "student" && placement.length < 2) {
-    return { error: "Kelas wajib diisi untuk pemilih siswa.", success: null };
+  if (parsed.data.type === "teacher") {
+    const teacherPlacement = await findTeacherPlacement();
+    if (!teacherPlacement) {
+      return {
+        error:
+          'Placement "GURU" belum ada. Buat kelas bernama "GURU" di tab Kelas (Pengaturan) terlebih dahulu.',
+        success: null,
+      };
+    }
+    placementId = teacherPlacement;
+  } else if (!/^[0-9a-f-]{36}$/i.test(placementId)) {
+    return { error: "Pilih kelas dari daftar.", success: null };
   }
 
   try {
     await db.insert(voters).values({
       fullName: parsed.data.fullName,
       type: parsed.data.type,
-      placement,
+      placementId,
     });
   } catch {
     return {
@@ -79,10 +97,9 @@ export async function createVoterAction(
 
 // ---------- Import massal (tempel daftar) ----------
 
-// Format per baris: "Nama <spasi/koma?> placement" — kita pakai format
-// sederhana: NAMA<TAB ATAU PIPE>TYPE<ATAU>PLACEMENT tidak praktis.
-// Format yang dipakai: satu baris = "Nama lengkap | student | XI RPL 1"
-// atau "Nama lengkap | teacher" (placement guru otomatis "GURU").
+// Satu baris = "Nama lengkap | NAMA KELAS" untuk siswa.
+// Guru: "Nama lengkap" saja (tanpa pipe) atau "Nama | GURU".
+// Kelas strict: harus sudah dibuat di tab Kelas, jika tidak baris dilewati.
 const IMPORT_SEPARATOR = "|";
 
 export async function importVotersAction(
@@ -96,12 +113,23 @@ export async function importVotersAction(
     return { error: "Daftar pemilih kosong.", success: null, added: 0, skipped: 0 };
   }
 
-  const rows: Array<{
-    fullName: string;
-    type: "student" | "teacher";
-    placement: string;
-  }> = [];
+  // Cache placement yang sudah dicari supaya tidak query berulang.
+  const placementCache = new Map<string, string | null>();
+  async function resolvePlacement(name: string): Promise<string | null> {
+    const normalized = normalizePlacement(name);
+    if (placementCache.has(normalized)) {
+      return placementCache.get(normalized)!;
+    }
+    const [row] = await db
+      .select({ id: placements.id })
+      .from(placements)
+      .where(eq(placements.name, normalized))
+      .limit(1);
+    placementCache.set(normalized, row?.id ?? null);
+    return row?.id ?? null;
+  }
 
+  const rows: Array<{ fullName: string; type: "student" | "teacher"; placementId: string }> = [];
   const errors: string[] = [];
 
   for (const [index, line] of raw.split("\n").entries()) {
@@ -110,27 +138,38 @@ export async function importVotersAction(
 
     const parts = trimmed.split(IMPORT_SEPARATOR).map((p) => p.trim());
     const fullName = parts[0];
-    const typeRaw = (parts[1] ?? "student").toLowerCase();
-    const placementRaw = parts[2] ?? "";
+    const placementRaw = parts[1] ?? "";
 
     if (!fullName || fullName.length < 3) {
       errors.push(`Baris ${index + 1}: nama tidak valid.`);
       continue;
     }
-    if (typeRaw !== "student" && typeRaw !== "teacher") {
-      errors.push(`Baris ${index + 1}: tipe harus "student" atau "teacher".`);
+
+    // Guru: tanpa kelas, atau kelas "GURU".
+    const isTeacher =
+      placementRaw.length === 0 || normalizePlacement(placementRaw) === "GURU";
+
+    if (isTeacher) {
+      const teacherPlacement = await findTeacherPlacement();
+      if (!teacherPlacement) {
+        errors.push(
+          `Baris ${index + 1}: placement "GURU" belum dibuat — buat dulu di tab Kelas.`,
+        );
+        continue;
+      }
+      rows.push({ fullName, type: "teacher", placementId: teacherPlacement });
       continue;
     }
 
-    const placement =
-      typeRaw === "teacher" ? "GURU" : normalizePlacement(placementRaw);
-
-    if (typeRaw === "student" && placement.length < 2) {
-      errors.push(`Baris ${index + 1}: kelas wajib diisi untuk siswa.`);
+    const placementId = await resolvePlacement(placementRaw);
+    if (!placementId) {
+      errors.push(
+        `Baris ${index + 1}: kelas "${placementRaw}" belum terdaftar — buat dulu di tab Kelas.`,
+      );
       continue;
     }
 
-    rows.push({ fullName, type: typeRaw, placement });
+    rows.push({ fullName, type: "student", placementId });
   }
 
   if (rows.length === 0) {
@@ -145,7 +184,7 @@ export async function importVotersAction(
   // Dedup dalam input sendiri.
   const seen = new Set<string>();
   const unique = rows.filter((r) => {
-    const key = `${r.fullName.toLowerCase()}|${r.placement}`;
+    const key = `${r.fullName.toLowerCase()}|${r.placementId}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -202,5 +241,23 @@ export async function deleteVotersBulkAction(formData: FormData) {
   if (ids.length === 0) return;
 
   await db.delete(voters).where(inArray(voters.id, ids));
+  revalidateAdmin();
+}
+
+// ---------- Reset pilihan seorang pemilih ----------
+
+/**
+ * Hapus suara seorang pemilih sehingga ia bisa memilih ulang.
+ * Aman terhadap race condition: session voting pemilih tidak ikut
+ * diubah, tapi submitVote tetap memverifikasi ulang dari database.
+ */
+export async function resetVoterVoteAction(formData: FormData) {
+  await requireAdmin();
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return;
+
+  await db.delete(votes).where(eq(votes.voterId, id));
+
   revalidateAdmin();
 }
