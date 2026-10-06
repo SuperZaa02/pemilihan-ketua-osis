@@ -150,7 +150,7 @@ export async function loginVoterAction(formData: FormData): Promise<void> {
     .limit(1);
 
   if (existingVote) {
-    redirect(`/vote?error=${encodeURIComponent("Anda sudah menggunakan hak pilih.")}`);
+    redirect(`/vote?error=${encodeURIComponent(`${voter.fullName} sudah menggunakan hak pilih.`)}`);
   }
 
   await createVoterSession(voter.id);
