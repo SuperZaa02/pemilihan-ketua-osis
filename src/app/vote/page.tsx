@@ -44,9 +44,15 @@ export default async function VotePage({
   ]);
 
   if (!election || election.status !== "open") {
-    const startTimestamp = election?.startsAt.getTime() ?? NaN;
-    const hasStarted = Number.isFinite(startTimestamp) && startTimestamp <= Date.now();
+    const startTimestamp = election?.startsAt
+      ? new Date(election.startsAt).getTime()
+      : NaN;
+
+    const hasStarted =
+      Number.isFinite(startTimestamp) && startTimestamp <= Date.now();
+
     const isPaused = election?.status === "closed" && hasStarted;
+
     const hasCountdown = Boolean(
       election &&
         Number.isFinite(startTimestamp) &&
@@ -58,20 +64,32 @@ export default async function VotePage({
         <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
           {isPaused ? (
             <>
-              <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 text-amber-600" aria-hidden="true">
+              <div
+                className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 text-amber-600"
+                aria-hidden="true"
+              >
                 <CirclePause className="h-6 w-6" />
               </div>
-              <h1 className="text-lg font-semibold text-zinc-900">Pemilihan dijeda oleh admin</h1>
+
+              <h1 className="text-lg font-semibold text-zinc-900">
+                Pemilihan dijeda oleh admin
+              </h1>
+
               <p className="mt-2 text-sm text-zinc-600">
-                Pemungutan suara sedang dijeda oleh admin. Silakan cek kembali nanti.
+                Pemungutan suara sedang dijeda oleh admin. Silakan cek kembali
+                nanti.
               </p>
             </>
           ) : hasCountdown ? (
             <>
-              <p className="text-sm font-medium text-zinc-500">{election?.name}</p>
+              <p className="text-sm font-medium text-zinc-500">
+                {election?.name}
+              </p>
+
               <h1 className="mt-2 text-lg font-semibold text-zinc-900">
                 Pemilihan dimulai dalam
               </h1>
+
               <p
                 id="election-countdown"
                 className="font-mono text-3xl font-semibold tracking-tight text-indigo-600"
@@ -79,20 +97,34 @@ export default async function VotePage({
               >
                 --:--:--
               </p>
-              <p className="mt-2 text-sm text-zinc-500">Silakan kembali saat waktu pemilihan tiba.</p>
+
+              <p className="mt-2 text-sm text-zinc-500">
+                Silakan kembali saat waktu pemilihan tiba.
+              </p>
+
               <Script id="election-countdown-script" strategy="afterInteractive">
                 {`(() => {
                   const target = ${startTimestamp};
                   const element = document.getElementById("election-countdown");
+
                   if (!element) return;
+
                   const update = () => {
                     const remaining = Math.max(0, target - Date.now());
+
                     const hours = Math.floor(remaining / 3600000);
                     const minutes = Math.floor((remaining % 3600000) / 60000);
                     const seconds = Math.floor((remaining % 60000) / 1000);
-                    element.textContent = [hours, minutes, seconds].map((value) => String(value).padStart(2, "0")).join(":");
-                    if (remaining === 0) element.textContent = "Segera dimulai";
+
+                    element.textContent = [hours, minutes, seconds]
+                      .map((value) => String(value).padStart(2, "0"))
+                      .join(":");
+
+                    if (remaining === 0) {
+                      element.textContent = "Segera dimulai";
+                    }
                   };
+
                   update();
                   window.setInterval(update, 1000);
                 })();`}
@@ -103,6 +135,7 @@ export default async function VotePage({
               <h1 className="text-lg font-semibold text-zinc-900">
                 Pemungutan suara belum dibuka
               </h1>
+
               <p className="mt-2 text-sm text-zinc-600">
                 {election
                   ? "Pemilihan belum dimulai. Silakan kembali pada jadwal yang ditentukan."
