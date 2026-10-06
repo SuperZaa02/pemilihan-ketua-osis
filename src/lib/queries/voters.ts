@@ -116,11 +116,10 @@ export async function getVotersForPlacement(placementId: string) {
       id: voters.id,
       fullName: voters.fullName,
       type: voters.type,
-      hasVoted: sql<boolean>`EXISTS (
-        SELECT 1 FROM ${votes} WHERE ${votes.voterId} = ${voters.id}
-      )`,
+      hasVoted: sql<boolean>`${votes.id} IS NOT NULL`,
     })
     .from(voters)
+    .leftJoin(votes, eq(votes.voterId, voters.id))
     .where(eq(voters.placementId, placementId))
     .orderBy(asc(voters.fullName));
 }

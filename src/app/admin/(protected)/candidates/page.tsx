@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Pencil } from "lucide-react";
 
 import { CandidateForm } from "@/components/admin/candidate-form";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   Collapsible,
   ConfirmSubmitButton,
@@ -141,12 +142,12 @@ export default async function AdminCandidatesPage({
 
                 <form action={toggleCandidateStatusAction}>
                   <input type="hidden" name="id" value={candidate.id} />
-                  <button
-                    type="submit"
+                  <FormSubmitButton
+                    pendingText="Memproses..."
                     className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-800 transition-colors hover:bg-zinc-50"
                   >
                     {candidate.status === "active" ? "Nonaktifkan" : "Aktifkan"}
-                  </button>
+                  </FormSubmitButton>
                 </form>
 
                 <form action={deleteCandidateAction}>

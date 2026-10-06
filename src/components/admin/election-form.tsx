@@ -3,6 +3,7 @@
 import { CircleAlert, CircleCheck, Plus, Trash2 } from "lucide-react";
 import { useActionState, useState } from "react";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   createPlacementAction,
   deletePlacementAction,
@@ -56,6 +57,10 @@ export function ElectionForm({
 
   const defaultEnd = new Date(defaultStart);
   defaultEnd.setHours(15, 0, 0, 0);
+  const defaultResultsOpen =
+    election?.resultsOpenAt && election.resultsOpenAt > election.endsAt
+      ? election.resultsOpenAt
+      : new Date((election?.endsAt ?? defaultEnd).getTime() + 60_000);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -138,6 +143,52 @@ export function ElectionForm({
                 className={inputClass}
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="e-results-mode"
+              className="text-sm font-medium text-zinc-800"
+            >
+              Cara Publikasi Hasil
+            </label>
+            <select
+              id="e-results-mode"
+              name="resultsPublicationMode"
+              defaultValue={election?.resultsPublicationMode ?? "automatic"}
+              className={inputClass}
+            >
+              <option value="automatic">Otomatis sesuai waktu</option>
+              <option value="manual">Manual oleh admin</option>
+            </select>
+            <p className="text-xs text-zinc-500">
+              Publikasi otomatis menunggu waktu yang ditentukan dan pemilihan
+              ditutup admin. Publikasi manual mengikuti keputusan admin, tetapi
+              pemilihan tetap harus ditutup terlebih dahulu.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="e-results-open"
+              className="text-sm font-medium text-zinc-800"
+            >
+              Waktu Publikasi Hasil Otomatis
+            </label>
+            <input
+              id="e-results-open"
+              name="resultsOpenAt"
+              type="datetime-local"
+              defaultValue={toLocalInputValue(defaultResultsOpen)}
+              min={toLocalInputValue(
+                new Date((election?.endsAt ?? defaultEnd).getTime() + 60_000),
+              )}
+              className={inputClass}
+            />
+            <p className="text-xs text-zinc-500">
+              Untuk mode otomatis, waktu publikasi wajib setelah waktu selesai
+              pemilihan. Pada mode manual, waktu ini tidak digunakan.
+            </p>
           </div>
         </div>
       </section>
@@ -237,23 +288,23 @@ export function ConfirmSubmitButton({
   children,
   message,
   className,
+  pendingText,
+  ...props
 }: {
   children: React.ReactNode;
   message: string;
   className?: string;
-}) {
+  pendingText?: string;
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type">) {
   return (
-    <button
-      type="submit"
+    <FormSubmitButton
+      {...props}
+      confirmMessage={message}
+      pendingText={pendingText}
       className={className}
-      onClick={(event) => {
-        if (!window.confirm(message)) {
-          event.preventDefault();
-        }
-      }}
     >
       {children}
-    </button>
+    </FormSubmitButton>
   );
 }
 
@@ -349,14 +400,14 @@ export function PlacementManager({
               <option value="teacher">Guru</option>
             </select>
 
-            <button
-              type="submit"
+            <FormSubmitButton
               disabled={isCreating}
+              pendingText="Menyimpan..."
               className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Plus aria-hidden className="size-4" />
-              {isCreating ? "Menyimpan..." : "Tambah"}
-            </button>
+              Tambah
+            </FormSubmitButton>
           </div>
         </form>
       </section>
@@ -391,13 +442,13 @@ export function PlacementManager({
             />
 
             <div className="flex justify-end">
-              <button
-                type="submit"
+              <FormSubmitButton
                 disabled={isImporting}
+                pendingText="Mengimport..."
                 className="h-9 rounded-md border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isImporting ? "Mengimport..." : "Import Kelas"}
-              </button>
+                Import Kelas
+              </FormSubmitButton>
             </div>
           </div>
         </form>
@@ -476,9 +527,9 @@ export function PlacementManager({
                               value={placement.id}
                             />
 
-                            <button
-                              type="submit"
+                            <FormSubmitButton
                               disabled={inUse}
+                              pendingText="Menghapus..."
                               title={
                                 inUse
                                   ? "Kelas masih dipakai pemilih/kandidat"
@@ -491,7 +542,7 @@ export function PlacementManager({
                                 className="size-3.5"
                               />
                               Hapus
-                            </button>
+                            </FormSubmitButton>
                           </form>
                         </td>
                       </tr>

@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
 import Script from "next/script";
 import { redirect } from "next/navigation";
+import { LinkToResultButton } from "@/components/vote/link-to-result-button";
 
 import { VoterLoginForm } from "@/components/vote/voter-login-form";
 import { getVoterSession } from "@/lib/auth/voter-session";
 import { getCachedActiveElection } from "@/lib/queries/cached";
 import { getPlacementsWithVotingStatus } from "@/lib/queries/placements";
-import { CirclePause } from "lucide-react";
+import { CheckCircle2, CirclePause, Clock3 } from "lucide-react";
 
-export const metadata: Metadata = {
+export const metaMetadata = {
   title: "Voting",
 };
 
@@ -32,37 +32,59 @@ export default async function VotePage({
 }) {
   const { error } = await searchParams;
 
-  // Sudah login? langsung ke daftar kandidat.
-  const voterSession = await getVoterSession();
-  if (voterSession) {
-    redirect("/vote/candidates");
-  }
-
   const [election, placements] = await Promise.all([
     getCachedActiveElection(),
     getPlacementsWithVotingStatus(),
   ]);
+
+  const now = new Date();
+  const hasFinished = Boolean(election && election.endsAt <= now);
+  const hasStarted = Boolean(election && election.startsAt <= now);
+  const isPaused = Boolean(
+    election &&
+      election.status === "closed" &&
+      hasStarted &&
+      !hasFinished,
+  );
+  const isNotOpened = Boolean(
+    election &&
+      election.status !== "open" &&
+      !isPaused &&
+      !hasFinished,
+  );
 
   if (!election || election.status !== "open") {
     const startTimestamp = election?.startsAt
       ? new Date(election.startsAt).getTime()
       : NaN;
 
-    const hasStarted =
-      Number.isFinite(startTimestamp) && startTimestamp <= Date.now();
-
-    const isPaused = election?.status === "closed" && hasStarted;
-
     const hasCountdown = Boolean(
       election &&
+        !hasStarted &&
         Number.isFinite(startTimestamp) &&
-        startTimestamp > Date.now(),
+        startTimestamp > now.getTime(),
     );
 
     return (
       <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16">
         <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-          {isPaused ? (
+          {hasFinished ? (
+            <>
+              <div
+                className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-zinc-100 text-zinc-600"
+                aria-hidden="true"
+              >
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+              <h1 className="text-lg font-semibold text-zinc-900">
+                Pemilihan sudah selesai
+              </h1>
+              <p className="mt-2 text-sm text-zinc-600">
+                Waktu pemungutan suara telah berakhir. Lihat hasil pemilihan
+                melalui tautan di bawah.
+              </p>
+            </>
+          ) : isPaused ? (
             <>
               <div
                 className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 text-amber-600"
@@ -82,6 +104,12 @@ export default async function VotePage({
             </>
           ) : hasCountdown ? (
             <>
+              <div
+                className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-indigo-50 text-indigo-600"
+                aria-hidden="true"
+              >
+                <Clock3 className="h-6 w-6" />
+              </div>
               <p className="text-sm font-medium text-zinc-500">
                 {election?.name}
               </p>
@@ -96,10 +124,6 @@ export default async function VotePage({
                 aria-live="polite"
               >
                 --:--:--
-              </p>
-
-              <p className="mt-2 text-sm text-zinc-500">
-                Silakan kembali saat waktu pemilihan tiba.
               </p>
 
               <Script id="election-countdown-script" strategy="afterInteractive">
@@ -129,11 +153,17 @@ export default async function VotePage({
                   window.setInterval(update, 1000);
                 })();`}
               </Script>
+
+              <p className="mt-2 text-sm text-zinc-500">
+                Silakan kembali saat waktu pemilihan tiba.
+              </p>
             </>
           ) : (
             <>
               <h1 className="text-lg font-semibold text-zinc-900">
-                Pemungutan suara belum dibuka
+                {isNotOpened
+                  ? "Pemilihan belum dibuka"
+                  : "Belum ada pemilihan"}
               </h1>
 
               <p className="mt-2 text-sm text-zinc-600">
@@ -143,9 +173,16 @@ export default async function VotePage({
               </p>
             </>
           )}
+          <LinkToResultButton />
         </div>
       </main>
     );
+  }
+
+  // Jika pemilihan belum aktif atau sudah selesai, tampilkan statusnya dulu.
+  const voterSession = await getVoterSession();
+  if (voterSession) {
+    redirect("/vote/candidates");
   }
 
   const errorMessage = error
@@ -154,15 +191,18 @@ export default async function VotePage({
 
   return (
     <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex flex-col items-center text-center">
+      <div className="grid w-full max-w-4xl items-center gap-8 lg:grid-cols-2 lg:gap-12">
+        <header className="text-center lg:text-left">
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
             {election.name}
           </h1>
           <p className="mt-1 text-sm text-zinc-600">
             Pilih kelas dan nama Anda untuk memulai
           </p>
-        </div>
+          <div className="flex justify-center lg:justify-start">
+            <LinkToResultButton />
+          </div>
+        </header>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           {errorMessage && (

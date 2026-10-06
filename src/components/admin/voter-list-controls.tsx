@@ -35,10 +35,23 @@ const [placementId, setPlacementId] = useState(initialPlacementId);
 const [sort, setSort] = useState(initialSort);
 const [pageSize, setPageSize] = useState(String(initialPageSize));
 const [isDebouncing, setIsDebouncing] = useState(false);
-const [isApplyingFilters, startApplyingFilters] = useTransition();
-const [isRefreshing, startRefreshing] = useTransition();
+const [isNavigating, startNavigating] = useTransition();
 
 const timeoutRef = useRef<number | null>(null);
+const navigationLock = useRef(false);
+
+useEffect(() => {
+  if (!isNavigating) {
+    navigationLock.current = false;
+  }
+}, [isNavigating]);
+
+function navigate(action: () => void) {
+  if (navigationLock.current) return;
+
+  navigationLock.current = true;
+  startNavigating(action);
+}
 
 useEffect(() => {
 return () => {
@@ -90,7 +103,7 @@ timeoutRef.current = window.setTimeout(() => {
   timeoutRef.current = null;
   setIsDebouncing(false);
 
-  startApplyingFilters(() => {
+  navigate(() => {
     router.replace(`${pathname}?${params.toString()}`, {
       scroll: false,
     });
@@ -112,7 +125,7 @@ setIsDebouncing(false);
 
 const params = buildParams();
 
-startApplyingFilters(() => {
+navigate(() => {
   router.push(`${pathname}?${params.toString()}`, {
     scroll: false,
   });
@@ -140,7 +153,7 @@ timeoutRef.current = null;
 
 setIsDebouncing(false);
 
-startRefreshing(() => {
+navigate(() => {
   router.refresh();
 });
 
@@ -163,6 +176,7 @@ return (
         <input
           name="q"
           value={search}
+          disabled={isNavigating}
           onChange={(event) => updateSearch(event.target.value)}
           placeholder="Cari nama atau kelas..."
           className="h-10 w-full rounded-md border border-zinc-300 bg-white pl-9 pr-3 text-sm font-normal text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10"
@@ -179,6 +193,7 @@ return (
         <select
           name="placementId"
           value={placementId}
+          disabled={isNavigating}
           onChange={(event) => {
             clearPendingSearch();
             setPlacementId(event.target.value);
@@ -202,6 +217,7 @@ return (
         <select
           name="sort"
           value={sort}
+          disabled={isNavigating}
           onChange={(event) => {
             clearPendingSearch();
             setSort(
@@ -222,6 +238,7 @@ return (
         <select
           name="pageSize"
           value={pageSize}
+          disabled={isNavigating}
           onChange={(event) => {
             clearPendingSearch();
             setPageSize(event.target.value);
@@ -241,29 +258,29 @@ return (
         <button
           type="button"
           onClick={handleRefresh}
-          disabled={isRefreshing}
+          disabled={isNavigating}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 outline-none transition-colors hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-900/10 disabled:cursor-wait disabled:opacity-60"
         >
           <RefreshCcw
             aria-hidden
             className={`size-3.5 ${
-              isRefreshing ? "animate-spin" : ""
+              isNavigating ? "animate-spin" : ""
             }`}
           />
         </button>
 
         <button
           type="submit"
-          disabled={isApplyingFilters}
+          disabled={isNavigating}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-900 px-4 text-sm font-medium text-white outline-none transition-colors hover:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-zinc-900/20 disabled:cursor-wait disabled:opacity-60"
         >
-          {isApplyingFilters && (
+          {isNavigating && (
             <LoaderCircle
               aria-hidden
               className="size-3.5 animate-spin"
             />
           )}
-          {!isApplyingFilters && (
+          {!isNavigating && (
             <Play
               aria-hidden
               className={"size-3.5"}
@@ -275,27 +292,19 @@ return (
   </form>
 
   {/* Status */}
-  {(isApplyingFilters || isRefreshing || isDebouncing) && (
+  {(isNavigating || isDebouncing) && (
     <div
       className="mt-2 flex items-center gap-1.5 text-[11px] text-zinc-500"
       role="status"
       aria-live="polite"
     >
-      {isRefreshing ? (
+      {isNavigating ? (
         <>
           <LoaderCircle
             aria-hidden
             className="size-3 animate-spin text-zinc-500"
           />
-          <span>Menyegarkan data pemilih...</span>
-        </>
-      ) : isApplyingFilters ? (
-        <>
-          <LoaderCircle
-            aria-hidden
-            className="size-3 animate-spin text-zinc-500"
-          />
-          <span>Menerapkan filter...</span>
+          <span>Memuat data pemilih...</span>
         </>
       ) : (
         <span>Pencarian dimulai sebentar lagi...</span>

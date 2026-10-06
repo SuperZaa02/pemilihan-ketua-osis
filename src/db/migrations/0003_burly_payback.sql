@@ -1,0 +1,2 @@
+ALTER TABLE "elections" ADD COLUMN "results_publication_mode" text DEFAULT 'automatic' NOT NULL;--> statement-breakpoint
+ALTER TABLE "elections" ADD COLUMN "results_manually_open" boolean DEFAULT false NOT NULL;

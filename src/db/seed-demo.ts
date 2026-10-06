@@ -109,6 +109,7 @@ async function main() {
       status: "draft",
       startsAt,
       endsAt,
+      resultsOpenAt: new Date(endsAt.getTime() + 60_000),
       // Semua kelas siswa + guru ikut (admin bisa ubah di Pengaturan).
       allowedPlacements: ["X.1", "X.2", "X.3", "X.4", "XI.1", "XI.2", "XI.3", "XI.4", "XII.1", "XII.2", "XII.3", "XII.4", "GURU"],
     });

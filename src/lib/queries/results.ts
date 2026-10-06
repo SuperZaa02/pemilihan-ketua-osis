@@ -2,28 +2,13 @@ import { count, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { candidates, placements, voters, votes } from "@/db/schema";
-
-export type ElectionResults = {
-  totalVoters: number;
-  totalVotes: number;
-  turnoutPercent: number;
-  teacherVotes: number;
-  studentVotes: number;
-  perCandidate: Array<{
-    id: string;
-    fullName: string;
-    placementName: string;
-    photoUrl: string | null;
-    status: "active" | "inactive";
-    voteCount: number;
-    percent: number;
-  }>;
-};
+import { isResultsOpen } from "./election";
 
 /**
- * Hasil pemilihan: satu query agregasi per-candidate + statistik global.
- * Percent dihitung dari total suara sah (bukan jumlah pemilih terdaftar).
+ * IsResultsOpen: Cek apakah hasil pemilihan sudah terbuka.
  */
+export { isResultsOpen };
+
 export async function getElectionResults(): Promise<ElectionResults> {
   const [voterStats] = await db
     .select({
@@ -74,3 +59,20 @@ export async function getElectionResults(): Promise<ElectionResults> {
     })),
   };
 }
+
+export type ElectionResults = {
+  totalVoters: number;
+  totalVotes: number;
+  turnoutPercent: number;
+  teacherVotes: number;
+  studentVotes: number;
+  perCandidate: Array<{
+    id: string;
+    fullName: string;
+    placementName: string;
+    photoUrl: string | null;
+    status: "active" | "inactive";
+    voteCount: number;
+    percent: number;
+  }>;
+};

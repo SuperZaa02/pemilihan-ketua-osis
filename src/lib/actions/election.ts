@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 
 import { z } from "zod";
@@ -19,6 +19,8 @@ function revalidateAll() {
   revalidatePath("/admin");
   revalidatePath("/admin/election");
   revalidatePath("/admin/results");
+  revalidatePath("/");
+  revalidatePath("/results");
   updateTag("election");
   revalidatePath("/vote");
 }
@@ -28,6 +30,8 @@ const electionSchema = z
     name: z.string().trim().min(3, "Nama pemilihan minimal 3 karakter").max(120),
     startsAt: z.string().min(1, "Waktu mulai wajib diisi"),
     endsAt: z.string().min(1, "Waktu selesai wajib diisi"),
+    resultsPublicationMode: z.enum(["automatic", "manual"]),
+    resultsOpenAt: z.string().optional(),
     // Daftar nama placement yang boleh memilih (dari dropdown multi-select).
     allowedPlacements: z
       .array(z.string().max(60))
@@ -38,6 +42,24 @@ const electionSchema = z
     {
       message: "Waktu selesai harus setelah waktu mulai.",
       path: ["endsAt"],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.resultsPublicationMode === "manual") return true;
+      if (!data.resultsOpenAt) return false;
+
+      const resultsOpenAt = new Date(data.resultsOpenAt).getTime();
+      const endsAt = new Date(data.endsAt).getTime();
+      return (
+        Number.isFinite(resultsOpenAt) &&
+        Number.isFinite(endsAt) &&
+        resultsOpenAt > endsAt
+      );
+    },
+    {
+      message: "Waktu publikasi hasil harus setelah waktu penutupan pemilihan.",
+      path: ["resultsOpenAt"],
     },
   );
 
@@ -51,6 +73,8 @@ export async function saveElectionAction(
     name: formData.get("name"),
     startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"),
+    resultsPublicationMode: formData.get("resultsPublicationMode"),
+    resultsOpenAt: formData.get("resultsOpenAt") || undefined,
     allowedPlacements: formData.getAll("allowedPlacements").filter(
       (v): v is string => typeof v === "string",
     ),
@@ -64,6 +88,12 @@ export async function saveElectionAction(
     name: parsed.data.name,
     startsAt: new Date(parsed.data.startsAt),
     endsAt: new Date(parsed.data.endsAt),
+    resultsPublicationMode: parsed.data.resultsPublicationMode,
+    resultsOpenAt:
+      parsed.data.resultsPublicationMode === "automatic" &&
+      parsed.data.resultsOpenAt
+        ? new Date(parsed.data.resultsOpenAt)
+        : null,
     allowedPlacements: parsed.data.allowedPlacements,
     createdBy: session.sub,
   };
@@ -71,7 +101,16 @@ export async function saveElectionAction(
   const existing = await getActiveElection();
 
   if (existing) {
-    await db.update(elections).set(values).where(eq(elections.id, existing.id));
+    await db
+      .update(elections)
+      .set({
+        ...values,
+        resultsManuallyOpen:
+          existing.resultsPublicationMode === parsed.data.resultsPublicationMode
+            ? existing.resultsManuallyOpen
+            : false,
+      })
+      .where(eq(elections.id, existing.id));
   } else {
     await db.insert(elections).values(values);
   }
@@ -84,15 +123,57 @@ export async function setElectionStatusAction(formData: FormData) {
   await requireAdmin();
 
   const status = formData.get("status");
-  if (status !== "draft" && status !== "open" && status !== "closed") return;
+  if (status !== "draft" && status !== "open" && status !== "closed") {
+    throw new Error("Status pemilihan tidak valid.");
+  }
 
   const existing = await getActiveElection();
-  if (!existing) return;
+  if (!existing) {
+    throw new Error("Belum ada pemilihan yang diatur.");
+  }
 
   await db
     .update(elections)
     .set({ status })
     .where(eq(elections.id, existing.id));
+
+  revalidateAll();
+}
+
+export async function setManualResultsStatusAction(formData: FormData) {
+  await requireAdmin();
+
+  const status = formData.get("status");
+  if (status !== "open" && status !== "closed") {
+    throw new Error("Status publikasi hasil tidak valid.");
+  }
+
+  const existing = await getActiveElection();
+  if (!existing) {
+    throw new Error("Belum ada pemilihan yang diatur.");
+  }
+  if (existing.resultsPublicationMode !== "manual") {
+    throw new Error("Kontrol buka/tutup hanya tersedia pada mode manual.");
+  }
+  if (status === "open" && existing.status !== "closed") {
+    throw new Error("Tutup pemilihan sebelum membuka publikasi hasil.");
+  }
+
+  const [updated] = await db
+    .update(elections)
+    .set({ resultsManuallyOpen: status === "open" })
+    .where(
+      and(
+        eq(elections.id, existing.id),
+        eq(elections.resultsPublicationMode, "manual"),
+        ...(status === "open" ? [eq(elections.status, "closed")] : []),
+      ),
+    )
+    .returning({ id: elections.id });
+
+  if (!updated) {
+    throw new Error("Perubahan gagal karena status pemilihan telah berubah.");
+  }
 
   revalidateAll();
 }

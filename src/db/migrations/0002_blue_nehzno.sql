@@ -1,0 +1,1 @@
+ALTER TABLE "elections" ADD COLUMN "results_open_at" timestamp with time zone;

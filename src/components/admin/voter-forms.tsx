@@ -2,7 +2,9 @@
 
 import { CircleAlert, CircleCheck, X } from "lucide-react";
 import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   createVoterAction,
   importVotersAction,
@@ -196,6 +198,7 @@ Andi Wijaya | GURU`}
 
 export function ResetVoteButton({ voterName }: { voterName: string }) {
   const [confirming, setConfirming] = useState(false);
+  const { pending } = useFormStatus();
 
   if (!confirming) {
     return (
@@ -212,17 +215,18 @@ export function ResetVoteButton({ voterName }: { voterName: string }) {
 
   return (
     <span className="inline-flex items-center gap-1">
-      <button
-        type="submit"
+      <FormSubmitButton
+        pendingText="Mereset..."
         className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-amber-700"
       >
         Ya, reset pilihan {voterName.split(" ")[0]}
-      </button>
+      </FormSubmitButton>
       <button
         type="button"
         onClick={() => setConfirming(false)}
+        disabled={pending}
         aria-label="Batal"
-        className="inline-flex size-6 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50"
+        className="inline-flex size-6 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <X aria-hidden className="size-3.5" />
       </button>

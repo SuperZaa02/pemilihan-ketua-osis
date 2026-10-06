@@ -1,6 +1,7 @@
-import { Hourglass, Lock, Play } from "lucide-react";
+import { Check, Lock, Play } from "lucide-react";
 
 import { ChangePasswordForm } from "@/components/admin/change-password-form";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   Collapsible,
   ConfirmSubmitButton,
@@ -8,7 +9,10 @@ import {
   PlacementManager,
 } from "@/components/admin/election-form";
 import { Card, PageHeader, StatusBadge } from "@/components/ui";
-import { deleteAllElectionDataAction, setElectionStatusAction } from "@/lib/actions/election";
+import {
+  deleteAllElectionDataAction,
+  setElectionStatusAction,
+} from "@/lib/actions/election";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getActiveElection } from "@/lib/queries/election";
 import { getPlacementsWithUsage } from "@/lib/queries/placements";
@@ -73,37 +77,37 @@ export default async function AdminElectionPage() {
             {election.status !== "open" && (
               <form action={setElectionStatusAction}>
                 <input type="hidden" name="status" value="open" />
-                <button
-                  type="submit"
+                <FormSubmitButton
+                  pendingText="Memproses..."
                   className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
                 >
                   <Play aria-hidden className="size-4" />
                   Buka Pemilihan
-                </button>
+                </FormSubmitButton>
               </form>
             )}
             {election.status === "open" && (
               <form action={setElectionStatusAction}>
                 <input type="hidden" name="status" value="closed" />
-                <button
-                  type="submit"
+                <FormSubmitButton
+                  pendingText="Memproses..."
                   className="flex items-center gap-1.5 rounded-md bg-red-600 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
                 >
                   <Lock aria-hidden className="size-4" />
                   Tutup Pemilihan
-                </button>
+                </FormSubmitButton>
               </form>
             )}
             {election.status !== "draft" && (
               <form action={setElectionStatusAction}>
                 <input type="hidden" name="status" value="draft" />
-                <button
-                  type="submit"
+                <FormSubmitButton
+                  pendingText="Memproses..."
                   className="flex items-center gap-1.5 rounded-md border border-zinc-300 px-3.5 py-2 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-50"
                 >
-                  <Hourglass aria-hidden className="size-4" />
-                  Kembalikan ke Draft
-                </button>
+                  <Check aria-hidden className="size-4" />
+                  Selesaikan Pemilihan
+                </FormSubmitButton>
               </form>
             )}
           </div>
@@ -132,6 +136,7 @@ export default async function AdminElectionPage() {
           <form action={deleteAllElectionDataAction}>
             <ConfirmSubmitButton
               message="Hapus SEMUA suara, kandidat, dan pemilih? Tindakan ini tidak bisa dibatalkan."
+              pendingText="Menghapus..."
               className="w-fit rounded-md border border-red-300 bg-red-50 px-3.5 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
             >
               Hapus Semua Data Pemilihan

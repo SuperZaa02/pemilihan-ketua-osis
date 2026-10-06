@@ -3,6 +3,7 @@
 import { CircleAlert, UserRound } from "lucide-react";
 import { useActionState } from "react";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import {
   loadVotersByPlacementAction,
   loginVoterAction,
@@ -35,6 +36,10 @@ export function VoterLoginForm({
       (name) => name.trim().toUpperCase() === placement.name.trim().toUpperCase(),
     ),
   );
+  const hasSelectablePlacement = availablePlacements.some(
+    (placement) =>
+      placement.voterCount > 0 && placement.votedCount < placement.voterCount,
+  );
 
   return (
     <div className="flex flex-col gap-2">
@@ -54,6 +59,11 @@ export function VoterLoginForm({
             Belum ada kelas yang diizinkan untuk memilih. Silakan hubungi panitia.
           </p>
         )}
+        {availablePlacements.length > 0 && !hasSelectablePlacement && (
+          <p className="text-sm text-zinc-600">
+            Semua pemilih di kelas yang diizinkan sudah memilih atau belum terdaftar.
+          </p>
+        )}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="placementId" className="text-sm font-medium text-zinc-900">
             Kelas / Penempatan
@@ -63,7 +73,8 @@ export function VoterLoginForm({
             name="placementId"
             required
             defaultValue={state.placementId ?? ""}
-            className={inputClass}
+            disabled={!hasSelectablePlacement}
+            className={`${inputClass} disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500 disabled:opacity-70`}
           >
             <option value="" disabled>Pilih kelas...</option>
             {availablePlacements.map((placement) => (
@@ -88,7 +99,7 @@ export function VoterLoginForm({
 
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || !hasSelectablePlacement}
           className="flex h-10 items-center justify-center gap-2 rounded-md border border-zinc-300 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "Memuat..." : state.placementId ? "Pilih kelas lain" : "Tampilkan nama"}
@@ -118,13 +129,13 @@ export function VoterLoginForm({
             </select>
           </div>
 
-          <button
-            type="submit"
+          <FormSubmitButton
+            pendingText="Memuat..."
             className="flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-900 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <UserRound aria-hidden className="size-4" />
             Lanjutkan Memilih
-          </button>
+          </FormSubmitButton>
         </form>
       )}
     </div>

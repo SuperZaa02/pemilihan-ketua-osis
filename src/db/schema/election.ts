@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   jsonb,
   pgTable,
@@ -21,6 +22,17 @@ export const elections = pgTable(
     status: electionStatusEnum("status").notNull().default("draft"),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    resultsOpenAt: timestamp("results_open_at", { withTimezone: true }),
+    resultsPublicationMode: text("results_publication_mode")
+      .$type<"automatic" | "manual">()
+      .notNull()
+      .default("automatic"),
+    resultsManuallyOpen: boolean("results_manually_open")
+      .notNull()
+      .default(false),
+    automaticResultsPublished: boolean("automatic_results_published")
+      .notNull()
+      .default(false),
     allowedPlacements: jsonb("allowed_placements")
       .$type<string[]>()
       .notNull()
