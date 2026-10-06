@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { getActiveCandidates } from "@/lib/queries/candidates";
 import { getActiveElection } from "@/lib/queries/election";
 import { getElectionResults } from "@/lib/queries/results";
+import { formatJakartaDateTime } from "@/lib/datetime";
 
 export const metadata = {
   title: "Beranda",
@@ -62,15 +63,9 @@ export default async function AdminDashboardPage() {
               <StatusBadge status={election.status} />
             </div>
             <p className="mt-1 text-sm text-zinc-500">
-              {new Intl.DateTimeFormat("id-ID", {
-                dateStyle: "long",
-                timeStyle: "short",
-              }).format(election.startsAt)}
+              {formatJakartaDateTime(election.startsAt)}
               {" — "}
-              {new Intl.DateTimeFormat("id-ID", {
-                dateStyle: "long",
-                timeStyle: "short",
-              }).format(election.endsAt)}
+              {formatJakartaDateTime(election.endsAt)}
             </p>
           </div>
           <Link

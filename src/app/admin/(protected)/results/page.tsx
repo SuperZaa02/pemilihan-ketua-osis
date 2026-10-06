@@ -11,6 +11,7 @@ import {
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getElectionResults } from "@/lib/queries/results";
 import { getActiveElection, isResultsOpen } from "@/lib/queries/election";
+import { formatJakartaDateTime } from "@/lib/datetime";
 
 export const metadata = {
   title: "Hasil Pemilihan",
@@ -22,6 +23,11 @@ export default async function AdminResultsPage() {
   await requireAdmin();
 
   const election = await getActiveElection();
+  const canOpenManualResults = Boolean(
+    election &&
+      election.status === "closed" &&
+      election.startsAt <= new Date(),
+  );
   const openResults = await isResultsOpen(election);
 
   if (!openResults) {
@@ -51,10 +57,7 @@ export default async function AdminResultsPage() {
               {election.status !== "closed"
                 ? "Hasil hanya akan dipublikasikan setelah jadwal tercapai dan status pemilihan ditutup. Jadwal: "
                 : "Hasil akan dibuka otomatis pada "}
-              {new Intl.DateTimeFormat("id-ID", {
-                dateStyle: "long",
-                timeStyle: "short",
-              }).format(election.resultsOpenAt ?? election.endsAt)}.
+              {formatJakartaDateTime(election.resultsOpenAt ?? election.endsAt)}.
             </p>
           ) : (
             <p className="mt-2 text-sm text-zinc-600">
@@ -65,16 +68,18 @@ export default async function AdminResultsPage() {
             <form action={setManualResultsStatusAction}>
               <input type="hidden" name="status" value="open" />
               <FormSubmitButton
-                disabled={election.status !== "closed"}
+                disabled={!canOpenManualResults}
                 pendingText="Membuka hasil..."
                 className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Unlock aria-hidden className="size-4" />
                 Buka Hasil untuk Publik
               </FormSubmitButton>
-              {election.status !== "closed" && (
+              {!canOpenManualResults && (
                 <p className="mt-2 text-xs text-zinc-500">
-                  {election.status === "open"
+                  {election.startsAt > new Date()
+                    ? "Hasil belum dapat dibuka sebelum pemilihan dimulai."
+                    : election.status === "open"
                     ? "Tutup pemilihan terlebih dahulu untuk membuka publikasi hasil."
                     : "Pemilihan harus berstatus ditutup sebelum hasil dapat dibuka."}
                 </p>

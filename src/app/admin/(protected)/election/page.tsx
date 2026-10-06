@@ -16,6 +16,7 @@ import {
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getActiveElection } from "@/lib/queries/election";
 import { getPlacementsWithUsage } from "@/lib/queries/placements";
+import { formatJakartaDateTime } from "@/lib/datetime";
 
 export const metadata = {
   title: "Pengaturan Pemilihan",
@@ -50,15 +51,9 @@ export default async function AdminElectionPage() {
               <StatusBadge status={election.status} />
             </div>
             <p className="mt-1 text-sm text-zinc-600">
-              {new Intl.DateTimeFormat("id-ID", {
-                dateStyle: "long",
-                timeStyle: "short",
-              }).format(election.startsAt)}
+              {formatJakartaDateTime(election.startsAt)}
               {" — "}
-              {new Intl.DateTimeFormat("id-ID", {
-                dateStyle: "long",
-                timeStyle: "short",
-              }).format(election.endsAt)}
+              {formatJakartaDateTime(election.endsAt)}
             </p>
             <p
               className="mt-1 line-clamp-2 text-sm text-zinc-600"

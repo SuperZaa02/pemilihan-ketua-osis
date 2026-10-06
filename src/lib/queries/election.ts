@@ -9,7 +9,13 @@ export async function isResultsOpen(
 ): Promise<boolean> {
   const activeElection =
     election === undefined ? await getActiveElection() : election;
-  if (!activeElection) return false;
+  if (
+    !activeElection ||
+    activeElection.status !== "closed" ||
+    now < activeElection.startsAt
+  ) {
+    return false;
+  }
 
   if (activeElection.resultsPublicationMode === "manual") {
     return activeElection.resultsManuallyOpen;
@@ -19,12 +25,7 @@ export async function isResultsOpen(
 
   const publicationAt =
     activeElection.resultsOpenAt ?? activeElection.endsAt;
-  if (
-    activeElection.status !== "closed" ||
-    now < publicationAt
-  ) {
-    return false;
-  }
+  if (now < publicationAt) return false;
 
   const [published] = await db
     .update(elections)

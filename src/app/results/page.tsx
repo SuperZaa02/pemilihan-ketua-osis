@@ -6,6 +6,7 @@ import { ResultsCountdown } from "@/components/results-countdown";
 import { Card } from "@/components/ui";
 import { getActiveElection, isResultsOpen } from "@/lib/queries/election";
 import { getElectionResults } from "@/lib/queries/results";
+import { formatJakartaDateTime } from "@/lib/datetime";
 
 export const metadata = {
   title: "Hasil Pemilihan",
@@ -42,10 +43,9 @@ export default async function ResultsPage() {
                 <>
                   <p className="mt-2 text-sm text-zinc-600">
                     Hasil akan dipublikasikan otomatis pada{" "}
-                    {new Intl.DateTimeFormat("id-ID", {
-                      dateStyle: "long",
-                      timeStyle: "short",
-                    }).format(election.resultsOpenAt ?? election.endsAt)}.
+                    {formatJakartaDateTime(
+                      election.resultsOpenAt ?? election.endsAt,
+                    )}.
                   </p>
                   {election.status !== "closed" ? (
                     <p className="mt-2 text-sm text-zinc-600">
@@ -215,10 +215,9 @@ export default async function ResultsPage() {
         <div className="mt-6 text-center text-sm text-zinc-500">
           {election?.resultsPublicationMode === "manual"
             ? "Hasil dibuka oleh admin."
-            : `Hasil dipublikasikan otomatis pada ${new Intl.DateTimeFormat(
-                "id-ID",
-                { dateStyle: "long", timeStyle: "short" },
-              ).format(election?.resultsOpenAt ?? election?.endsAt ?? new Date())}.`}
+            : `Hasil dipublikasikan otomatis pada ${formatJakartaDateTime(
+                election?.resultsOpenAt ?? election?.endsAt ?? new Date(),
+              )}.`}
         </div>
 
         {/* Back to Vote */}

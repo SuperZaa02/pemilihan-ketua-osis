@@ -14,6 +14,10 @@ import {
   saveElectionAction,
   type ElectionFormState,
 } from "@/lib/actions/election";
+import {
+  formatJakartaDateTimeLocal,
+  getDefaultJakartaElectionDateTimes,
+} from "@/lib/datetime";
 import type { Election } from "@/db/schema";
 import type { PlacementWithUsage } from "@/lib/queries/placements";
 
@@ -30,15 +34,6 @@ const initialPlacementState: PlacementFormState = {
 const inputClass =
   "h-10 w-full rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10";
 
-function toLocalInputValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
-}
-
 export function ElectionForm({
   election,
   placements,
@@ -51,16 +46,18 @@ export function ElectionForm({
     initialState,
   );
 
-  const defaultStart = new Date();
-  defaultStart.setDate(defaultStart.getDate() + 1);
-  defaultStart.setHours(8, 0, 0, 0);
-
-  const defaultEnd = new Date(defaultStart);
-  defaultEnd.setHours(15, 0, 0, 0);
+  const defaultElectionDateTimes = getDefaultJakartaElectionDateTimes();
   const defaultResultsOpen =
     election?.resultsOpenAt && election.resultsOpenAt > election.endsAt
-      ? election.resultsOpenAt
-      : new Date((election?.endsAt ?? defaultEnd).getTime() + 60_000);
+      ? formatJakartaDateTimeLocal(election.resultsOpenAt)
+      : election
+        ? formatJakartaDateTimeLocal(
+            new Date(election.endsAt.getTime() + 60_000),
+          )
+        : defaultElectionDateTimes.resultsOpenAt;
+  const minimumResultsOpen = election
+    ? formatJakartaDateTimeLocal(new Date(election.endsAt.getTime() + 60_000))
+    : defaultElectionDateTimes.resultsOpenAt;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -117,9 +114,9 @@ export function ElectionForm({
                 name="startsAt"
                 type="datetime-local"
                 required
-                defaultValue={toLocalInputValue(
-                  election?.startsAt ?? defaultStart,
-                )}
+                defaultValue={election
+                  ? formatJakartaDateTimeLocal(election.startsAt)
+                  : defaultElectionDateTimes.startsAt}
                 className={inputClass}
               />
             </div>
@@ -137,9 +134,9 @@ export function ElectionForm({
                 name="endsAt"
                 type="datetime-local"
                 required
-                defaultValue={toLocalInputValue(
-                  election?.endsAt ?? defaultEnd,
-                )}
+                defaultValue={election
+                  ? formatJakartaDateTimeLocal(election.endsAt)
+                  : defaultElectionDateTimes.endsAt}
                 className={inputClass}
               />
             </div>
@@ -179,10 +176,8 @@ export function ElectionForm({
               id="e-results-open"
               name="resultsOpenAt"
               type="datetime-local"
-              defaultValue={toLocalInputValue(defaultResultsOpen)}
-              min={toLocalInputValue(
-                new Date((election?.endsAt ?? defaultEnd).getTime() + 60_000),
-              )}
+              defaultValue={defaultResultsOpen}
+              min={minimumResultsOpen}
               className={inputClass}
             />
             <p className="text-xs text-zinc-500">

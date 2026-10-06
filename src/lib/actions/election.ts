@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { candidates, elections, voters, votes } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { parseJakartaDateTimeLocal } from "@/lib/datetime";
 import { getActiveElection } from "@/lib/queries/election";
 
 export type ElectionFormState = {
@@ -28,17 +29,44 @@ function revalidateAll() {
 const electionSchema = z
   .object({
     name: z.string().trim().min(3, "Nama pemilihan minimal 3 karakter").max(120),
-    startsAt: z.string().min(1, "Waktu mulai wajib diisi"),
-    endsAt: z.string().min(1, "Waktu selesai wajib diisi"),
+    startsAt: z.string().transform((value, context) => {
+      const date = parseJakartaDateTimeLocal(value);
+      if (!date) {
+        context.addIssue({ code: "custom", message: "Waktu mulai tidak valid." });
+        return z.NEVER;
+      }
+      return date;
+    }),
+    endsAt: z.string().transform((value, context) => {
+      const date = parseJakartaDateTimeLocal(value);
+      if (!date) {
+        context.addIssue({ code: "custom", message: "Waktu selesai tidak valid." });
+        return z.NEVER;
+      }
+      return date;
+    }),
     resultsPublicationMode: z.enum(["automatic", "manual"]),
-    resultsOpenAt: z.string().optional(),
+    resultsOpenAt: z
+      .string()
+      .transform((value, context) => {
+        const date = parseJakartaDateTimeLocal(value);
+        if (!date) {
+          context.addIssue({
+            code: "custom",
+            message: "Waktu publikasi hasil tidak valid.",
+          });
+          return z.NEVER;
+        }
+        return date;
+      })
+      .optional(),
     // Daftar nama placement yang boleh memilih (dari dropdown multi-select).
     allowedPlacements: z
       .array(z.string().max(60))
       .max(200, "Terlalu banyak kelas dipilih"),
   })
   .refine(
-    (data) => new Date(data.startsAt) < new Date(data.endsAt),
+    (data) => data.startsAt < data.endsAt,
     {
       message: "Waktu selesai harus setelah waktu mulai.",
       path: ["endsAt"],
@@ -49,8 +77,8 @@ const electionSchema = z
       if (data.resultsPublicationMode === "manual") return true;
       if (!data.resultsOpenAt) return false;
 
-      const resultsOpenAt = new Date(data.resultsOpenAt).getTime();
-      const endsAt = new Date(data.endsAt).getTime();
+      const resultsOpenAt = data.resultsOpenAt?.getTime() ?? NaN;
+      const endsAt = data.endsAt.getTime();
       return (
         Number.isFinite(resultsOpenAt) &&
         Number.isFinite(endsAt) &&
@@ -86,13 +114,13 @@ export async function saveElectionAction(
 
   const values = {
     name: parsed.data.name,
-    startsAt: new Date(parsed.data.startsAt),
-    endsAt: new Date(parsed.data.endsAt),
+    startsAt: parsed.data.startsAt,
+    endsAt: parsed.data.endsAt,
     resultsPublicationMode: parsed.data.resultsPublicationMode,
     resultsOpenAt:
       parsed.data.resultsPublicationMode === "automatic" &&
       parsed.data.resultsOpenAt
-        ? new Date(parsed.data.resultsOpenAt)
+        ? parsed.data.resultsOpenAt
         : null,
     allowedPlacements: parsed.data.allowedPlacements,
     createdBy: session.sub,
@@ -134,7 +162,12 @@ export async function setElectionStatusAction(formData: FormData) {
 
   await db
     .update(elections)
-    .set({ status })
+    .set({
+      status,
+      ...(status !== "closed"
+        ? { resultsManuallyOpen: false, automaticResultsPublished: false }
+        : {}),
+    })
     .where(eq(elections.id, existing.id));
 
   revalidateAll();
@@ -154,6 +187,9 @@ export async function setManualResultsStatusAction(formData: FormData) {
   }
   if (existing.resultsPublicationMode !== "manual") {
     throw new Error("Kontrol buka/tutup hanya tersedia pada mode manual.");
+  }
+  if (status === "open" && existing.startsAt > new Date()) {
+    throw new Error("Hasil belum dapat dibuka sebelum pemilihan dimulai.");
   }
   if (status === "open" && existing.status !== "closed") {
     throw new Error("Tutup pemilihan sebelum membuka publikasi hasil.");
