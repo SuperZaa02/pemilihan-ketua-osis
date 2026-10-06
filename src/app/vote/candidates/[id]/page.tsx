@@ -10,7 +10,7 @@ import { votes } from "@/db/schema";
 import { submitVoteAction } from "@/lib/actions/vote";
 import { getVoterSession } from "@/lib/auth/voter-session";
 import { getCachedActiveCandidateById } from "@/lib/queries/cached";
-import { SubmitVoteButton } from "./submit-vote-button";
+import { VoteConfirmationControls } from "./submit-vote-button";
 
 export async function generateMetadata({
   params,
@@ -66,17 +66,6 @@ export default async function VoteConfirmPage({
   return (
     <main className="min-h-dvh bg-zinc-50 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
       <div className="mx-auto flex w-full max-w-5xl flex-col">
-        {/* Header */}
-        <div className="mb-4 sm:mb-5">
-          <Link
-            href="/vote/candidates"
-            className="group inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
-          >
-            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
-            Kembali ke kandidat
-          </Link>
-        </div>
-
         {/* Main Card */}
         <div className="overflow-hidden rounded-3xl bg-white shadow-[0_20px_60px_-25px_rgba(0,0,0,0.18)] ring-1 ring-zinc-200/80">
           <div className="grid lg:grid-cols-[38%_62%]">
@@ -85,9 +74,13 @@ export default async function VoteConfirmPage({
               <div className="flex h-full flex-col">
                 <div>
                   <div className="mb-5">
-                    <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-400">
-                      Pemilihan OSIS
-                    </p>
+                    <Link
+                      href="/vote/candidates"
+                      className="group inline-flex items-center gap-2 mb-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-400 transition-colors hover:text-zinc-900"
+                    >
+                      <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-1" />
+                      <span>Kembali ke kandidat</span>
+                    </Link>
 
                     <h1 className="text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">
                       Konfirmasi Pilihan
@@ -122,10 +115,6 @@ export default async function VoteConfirmPage({
                     <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
                     <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-                      <p className="mb-1 text-[11px] font-medium text-zinc-300">
-                        Kandidat
-                      </p>
-
                       <h2 className="text-lg font-bold leading-tight text-white sm:text-xl">
                         {candidate.fullName}
                       </h2>
@@ -135,16 +124,6 @@ export default async function VoteConfirmPage({
                       </p>
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-5 hidden items-center justify-between border-t border-zinc-200/70 pt-4 lg:flex">
-                  <span className="text-[11px] text-zinc-400">
-                    Konfirmasi pilihan
-                  </span>
-
-                  <span className="text-[11px] font-medium text-zinc-400">
-                    1 suara / siswa
-                  </span>
                 </div>
               </div>
             </section>
@@ -196,42 +175,9 @@ export default async function VoteConfirmPage({
                     name="candidateId"
                     value={candidate.id}
                   />
-
-                  <div className="flex gap-3">
-                    <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-400/10">
-                      <CheckCircle2 className="size-5 text-emerald-400" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold sm:text-base">
-                        Siap memberikan suara?
-                      </h3>
-
-                      <p className="mt-1 text-xs leading-5 text-zinc-400 sm:text-sm">
-                        Suara yang sudah dikirim tidak dapat diubah kembali.
-                        Pastikan pilihanmu sudah tepat.
-                      </p>
-                    </div>
-                  </div>
-
-                  <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3.5 transition-colors hover:bg-white/[0.08] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/50">
-                    <input
-                      type="checkbox"
-                      name="confirm"
-                      required
-                      className="mt-0.5 size-4 shrink-0 cursor-pointer rounded border-white/30 bg-transparent accent-white"
-                    />
-
-                    <span className="text-xs leading-5 text-zinc-300 sm:text-sm">
-                      Saya menyatakan memilih{" "}
-                      <strong className="font-semibold text-white">
-                        {candidate.fullName}
-                      </strong>{" "}
-                      secara sadar, jujur, dan tanpa paksaan.
-                    </span>
-                  </label>
-
-                  <SubmitVoteButton />
+                  <VoteConfirmationControls
+                    candidateName={candidate.fullName}
+                  />
                 </form>
               </div>
             </section>
