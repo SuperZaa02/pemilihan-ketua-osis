@@ -1,4 +1,14 @@
-import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 
 import { db } from "@/db";
 import { placements, voters, votes } from "@/db/schema";
@@ -14,23 +24,42 @@ export type VoterWithVoteStatus = {
   hasVoted: boolean;
 };
 
+type VoterListOptions = {
+  search?: string;
+  placementId?: string;
+};
+
+function getVoterConditions(options?: VoterListOptions): SQL[] {
+  const conditions: SQL[] = [];
+
+  if (options?.search) {
+    const term = `%${options.search}%`;
+    conditions.push(
+      or(ilike(voters.fullName, term), ilike(placements.name, term))!,
+    );
+  }
+
+  if (options?.placementId) {
+    conditions.push(eq(voters.placementId, options.placementId));
+  }
+
+  return conditions;
+}
+
 /**
  * Daftar pemilih + status vote. hasVoted dihitung dari EXISTS pada tabel
  * votes (sumber kebenaran) — hindari N+1 dengan query gabungan ini.
  */
 export async function getVotersWithVoteStatus(options?: {
   search?: string;
+  placementId?: string;
+  limit?: number;
+  offset?: number;
+  sort?: "asc" | "desc";
 }): Promise<VoterWithVoteStatus[]> {
-  const conditions = [];
+  const conditions = getVoterConditions(options);
 
-  if (options?.search) {
-    const term = `%${options.search}%`;
-    conditions.push(
-      or(ilike(voters.fullName, term), ilike(placements.name, term)),
-    );
-  }
-
-  const rows = await db
+  let query = db
     .select({
       id: voters.id,
       fullName: voters.fullName,
@@ -46,9 +75,39 @@ export async function getVotersWithVoteStatus(options?: {
     .from(voters)
     .innerJoin(placements, eq(voters.placementId, placements.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(asc(placements.name), asc(voters.fullName));
+    .orderBy(
+      options?.sort === "desc" ? desc(voters.fullName) : asc(voters.fullName),
+      asc(voters.id),
+    )
+    .$dynamic();
 
-  return rows;
+  if (options?.limit !== undefined) {
+    query = query.limit(options.limit);
+  }
+  if (options?.offset !== undefined) {
+    query = query.offset(options.offset);
+  }
+
+  return query;
+}
+
+export async function getVoterListCounts(options?: VoterListOptions) {
+  const conditions = getVoterConditions(options);
+  const [result] = await db
+    .select({
+      total: count(),
+      voted: sql<number>`COUNT(*) FILTER (WHERE EXISTS (
+        SELECT 1 FROM ${votes} WHERE ${votes.voterId} = ${voters.id}
+      ))`.mapWith(Number),
+    })
+    .from(voters)
+    .innerJoin(placements, eq(voters.placementId, placements.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+  return {
+    total: result?.total ?? 0,
+    voted: result?.voted ?? 0,
+  };
 }
 
 export async function getVotersForPlacement(placementId: string) {

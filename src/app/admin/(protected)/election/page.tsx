@@ -56,8 +56,16 @@ export default async function AdminElectionPage() {
                 timeStyle: "short",
               }).format(election.endsAt)}
             </p>
-            <p className="mt-1 text-sm text-zinc-600">
-              Kelas diizinkan: {election.allowedPlacements.join(", ") || "-"}
+            <p
+              className="mt-1 line-clamp-2 text-sm text-zinc-600"
+              title={election.allowedPlacements.join(", ")}
+            >
+              Penempatan yang diizinkan: {placementOptions.length > 0 &&
+              placementOptions.every((placement) =>
+                election.allowedPlacements.includes(placement.name),
+              )
+                ? "Semuanya"
+                : election.allowedPlacements.join(", ") || "-"}
             </p>
           </div>
 
