@@ -2,6 +2,8 @@ import { CircleCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { Confetti } from "@/components/vote/confetti";
+
 export const metadata: Metadata = {
   title: "Terima Kasih",
 };
@@ -9,6 +11,7 @@ export const metadata: Metadata = {
 export default function VoteDonePage() {
   return (
     <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16">
+      <Confetti />
       <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
         <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-emerald-100">
           <CircleCheck aria-hidden className="size-6 text-emerald-600" />

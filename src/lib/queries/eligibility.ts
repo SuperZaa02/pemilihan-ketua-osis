@@ -23,7 +23,6 @@ export type EligibilityVoter = {
 export function checkEligibility(
   voter: EligibilityVoter,
   election: Election,
-  now: Date = new Date(),
 ): EligibilityResult {
   if (election.status !== "open") {
     return {
@@ -32,20 +31,6 @@ export function checkEligibility(
         election.status === "draft"
           ? "Pemilihan belum dibuka."
           : "Pemilihan sudah ditutup.",
-    };
-  }
-
-  if (now < election.startsAt) {
-    return {
-      eligible: false,
-      reason: "Pemilihan belum dimulai.",
-    };
-  }
-
-  if (now > election.endsAt) {
-    return {
-      eligible: false,
-      reason: "Periode pemilihan sudah berakhir.",
     };
   }
 
