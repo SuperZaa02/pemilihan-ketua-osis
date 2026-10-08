@@ -487,9 +487,7 @@ export function PlacementManager({
 
                 <tbody>
                   {placements.map((placement) => {
-                    const inUse =
-                      placement.voterCount > 0 ||
-                      placement.candidateCount > 0;
+                    const hasCandidates = placement.candidateCount > 0;
 
                     return (
                       <tr
@@ -523,11 +521,11 @@ export function PlacementManager({
                             />
 
                             <FormSubmitButton
-                              disabled={inUse}
+                              disabled={hasCandidates}
                               pendingText="Menghapus..."
                               title={
-                                inUse
-                                  ? "Kelas masih dipakai pemilih/kandidat"
+                                hasCandidates
+                                  ? "Kelas masih dipakai kandidat"
                                   : "Hapus kelas"
                               }
                               className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"

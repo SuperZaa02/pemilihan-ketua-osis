@@ -1,11 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { placements } from "@/db/schema";
+import { placements, voters, votes } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { normalizePlacement } from "@/lib/validation";
 
@@ -130,6 +130,15 @@ export async function deletePlacementAction(formData: FormData): Promise<void> {
   if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return;
 
   try {
+    const placementVoters = await db
+      .select({ id: voters.id })
+      .from(voters)
+      .where(eq(voters.placementId, id));
+    const voterIds = placementVoters.map((voter) => voter.id);
+    if (voterIds.length > 0) {
+      await db.delete(votes).where(inArray(votes.voterId, voterIds));
+      await db.delete(voters).where(inArray(voters.id, voterIds));
+    }
     await db.delete(placements).where(eq(placements.id, id));
   } catch {
     // Masih dipakai (FK restrict) — abaikan, data tidak rusak.

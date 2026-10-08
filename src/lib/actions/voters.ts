@@ -238,9 +238,63 @@ export async function deleteVotersBulkAction(formData: FormData) {
     (v): v is string => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v),
   );
 
-  if (ids.length === 0) return;
+  const placementId = formData.get("placementId");
+  const deleteByPlacement =
+    typeof placementId === "string" && /^[0-9a-f-]{36}$/i.test(placementId);
 
-  await db.delete(voters).where(inArray(voters.id, ids));
+  if (ids.length === 0 && !deleteByPlacement) return;
+
+  if (ids.length > 0) {
+    await db.delete(votes).where(inArray(votes.voterId, ids));
+    await db.delete(voters).where(inArray(voters.id, ids));
+  } else if (deleteByPlacement) {
+    const placementVoters = await db
+      .select({ id: voters.id })
+      .from(voters)
+      .where(eq(voters.placementId, placementId));
+    const placementVoterIds = placementVoters.map((voter) => voter.id);
+    if (placementVoterIds.length > 0) {
+      await db.delete(votes).where(inArray(votes.voterId, placementVoterIds));
+      await db.delete(voters).where(inArray(voters.id, placementVoterIds));
+    }
+  } else {
+    await db.delete(votes).where(inArray(votes.voterId, ids));
+    await db.delete(voters).where(inArray(voters.id, ids));
+  }
+  revalidateAdmin();
+}
+
+// ---------- Reset pilihan banyak pemilih ----------
+
+export async function resetVotersBulkAction(formData: FormData) {
+  await requireAdmin();
+
+  const ids = formData.getAll("ids").filter(
+    (v): v is string => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v),
+  );
+  const placementId = formData.get("placementId");
+  const validPlacementId =
+    typeof placementId === "string" && /^[0-9a-f-]{36}$/i.test(placementId)
+      ? placementId
+      : null;
+
+  if (ids.length > 0) {
+    await db.delete(votes).where(inArray(votes.voterId, ids));
+  } else if (validPlacementId) {
+    const placementVoters = await db
+      .select({ id: voters.id })
+      .from(voters)
+      .where(eq(voters.placementId, validPlacementId));
+    const placementVoterIds = placementVoters.map((voter) => voter.id);
+    if (placementVoterIds.length > 0) {
+      await db.delete(votes).where(inArray(votes.voterId, placementVoterIds));
+    }
+  } else if (ids.length > 0) {
+    await db.delete(votes).where(inArray(votes.voterId, ids));
+  } else {
+    return;
+  }
+
   revalidateAdmin();
 }
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { ConfirmSubmitButton, Collapsible } from "@/components/admin/election-form";
 import { VoterListControls } from "@/components/admin/voter-list-controls";
+import { VoterBulkActions } from "@/components/admin/voter-bulk-actions";
 import {
   ResetVoteButton,
   VoterForm,
@@ -11,7 +12,9 @@ import {
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import {
   deleteVoterAction,
+  deleteVotersBulkAction,
   resetVoterVoteAction,
+  resetVotersBulkAction,
 } from "@/lib/actions/voters";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getAllPlacements } from "@/lib/queries/placements";
@@ -161,6 +164,12 @@ export default async function AdminVotersPage({
           />
         </div>
 
+        <VoterBulkActions
+          deleteAction={deleteVotersBulkAction}
+          resetAction={resetVotersBulkAction}
+          placementId={placementId}
+        />
+
         {totalVoters === 0 ? (
           <div className="p-12">
             <EmptyState
@@ -177,6 +186,7 @@ export default async function AdminVotersPage({
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 bg-zinc-50/70">
+                    <th className="w-12 px-4 py-3" aria-label="Pilih" />
                     {/* Nama */}
                     <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                       Nama
@@ -210,6 +220,15 @@ export default async function AdminVotersPage({
                       key={voter.id}
                       className="group bg-white transition-colors hover:bg-zinc-50/60"
                     >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          name="ids"
+                          value={voter.id}
+                          aria-label={`Pilih ${voter.fullName}`}
+                          className="size-4 rounded border-zinc-300 accent-zinc-900"
+                        />
+                      </td>
                       {/* Nama */}
                       <td className="px-5 py-3.5">
                         <div className="flex min-w-0 items-center gap-3">
